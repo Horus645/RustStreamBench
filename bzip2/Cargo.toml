@@ -4,7 +4,8 @@ version = "0.1.0"
 edition = "2018"
 authors = ["Dalvan Griebler <dalvan.griebler@pucrs.br>",
 		   "Júnior Löff <junior.loff@edu.pucrs.br>",
-	   	   "Renato B. Hoffmann <renato.hoffmann@edu.pucrs.br>"]
+	   	   "Renato B. Hoffmann <renato.hoffmann@edu.pucrs.br>",
+		   "Leonardo Gibrowski Faé <leonardo.fae@edu.pucrs.br>"]
 license = "MIT"
 repository = "https://github.com/GMAP/RustStreamBench"
 readme = "README.md"
@@ -14,8 +15,11 @@ chrono = "0.4"
 libc = "0.2"
 bzip2-sys = { version = "0.1.7", path = "bzip2-sys" }
 
+# Spar-Rust
+spar-rust = { path = "../libs/spar-rust" }
+
 # Rust-SSP
-rust-spp = { path = "~/../../libs/rust-ssp" }
+rust-spp = { path = "../libs/rust-ssp" }
 
 # Rust Standard Library + Crossbeam
 crossbeam-channel = "0.5"

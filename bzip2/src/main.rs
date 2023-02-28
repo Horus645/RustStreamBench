@@ -6,6 +6,7 @@ mod std_threads;
 mod tokio;
 mod rayon;
 mod pipeliner;
+mod spar_rust;
 
 fn main() -> std::io::Result<()>{
     let args: Vec<String> = env::args().collect();
@@ -23,13 +24,15 @@ fn main() -> std::io::Result<()>{
         "sequential-io" => sequential::sequential_io(file_action, file_name),
         "rust-ssp" => rust_ssp::rust_ssp(threads, file_action, file_name),
         "rust-ssp-io" => rust_ssp::rust_ssp_io(threads, file_action, file_name),
+        "spar-rust" => spar_rust::spar_rust(threads, file_action, file_name),
+        "spar-rust-io" => spar_rust::spar_rust_io(threads, file_action, file_name),
         "std-threads" => std_threads::std_threads(threads, file_action, file_name),
         "std-threads-io" => std_threads::std_threads_io(threads, file_action, file_name),
         "tokio" => tokio::tokio(threads, file_action, file_name),
         "tokio-io" => tokio::tokio_io(threads, file_action, file_name),
         "rayon" => rayon::rayon(threads, file_action, file_name),
         "pipeliner" => pipeliner::pipeliner(threads, file_action, file_name),
-        _ => println!("Invalid run_mode, use: sequential | rust-ssp | std-threads | tokio | rayon | pipeliner"),
+        _ => println!("Invalid run_mode '{run_mode}', use: sequential | rust-ssp | std-threads | tokio | rayon | pipeliner"),
     
     }
 	
