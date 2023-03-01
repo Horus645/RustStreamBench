@@ -2,9 +2,9 @@ use raster::filter;
 use raster::Image;
 use std::time::SystemTime;
 
-use rust_spp::*;
+use spar_rust::to_stream;
 
-pub fn rust_ssp(dir_name: &str, threads: usize) {
+pub fn spar_rust(dir_name: &str, threads: usize) {
     let dir_entries = std::fs::read_dir(dir_name);
     let mut all_images: Vec<Image> = Vec::new();
 
@@ -20,36 +20,30 @@ pub fn rust_ssp(dir_name: &str, threads: usize) {
 
     let start = SystemTime::now();
 
-    let pipeline = pipeline![
-            parallel!(move |mut image: Image| {
+    let _ = to_stream!(OUTPUT(()), {
+        for image in all_images {
+            STAGE(INPUT(image: Image), OUTPUT(Image), REPLICATE = threads, {
                 filter::saturation(&mut image, 0.2).unwrap();
                 Some(image)
-            }, threads as i32),
-            parallel!(move |mut image: Image| {
+            });
+            STAGE(INPUT(image: Image), OUTPUT(Image), REPLICATE = threads, {
                 filter::emboss(&mut image).unwrap();
                 Some(image)
-            }, threads as i32),
-            parallel!(move |mut image: Image| {
+            });
+            STAGE(INPUT(image: Image), OUTPUT(Image), REPLICATE = threads, {
                 filter::gamma(&mut image, 2.0).unwrap();
                 Some(image)
-            }, threads as i32),
-            parallel!(move |mut image: Image| {
+            });
+            STAGE(INPUT(image: Image), OUTPUT(Image), REPLICATE = threads, {
                 filter::sharpen(&mut image).unwrap();
                 Some(image)
-            }, threads as i32),
-            parallel!(move |mut image: Image| {
+            });
+            STAGE(INPUT(image: Image), OUTPUT(()), REPLICATE = threads, {
                 filter::grayscale(&mut image).unwrap();
-                Some(image)
-            }, threads as i32),
-            collect!()
-        ];
-
-
-    for image in all_images.into_iter() {
-        pipeline.post(image).unwrap();
-    }
-
-    let _collection = pipeline.collect();
+                Some(())
+            });
+        }
+    });
 
     let system_duration = start.elapsed().expect("Failed to get render time?");
     let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
