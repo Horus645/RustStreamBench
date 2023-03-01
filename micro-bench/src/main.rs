@@ -4,6 +4,7 @@ mod std_threads;
 mod tokio;
 mod rayon;
 mod pipeliner;
+mod spar_rust;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -20,6 +21,7 @@ fn main() {
     match runtime.as_str() {
         "sequential" => sequential::sequential(size, iter_size1, iter_size2),
         "rust-ssp" => rust_ssp::rust_ssp_pipeline(size, threads, iter_size1, iter_size2),
+        "spar-rust" => spar_rust::spar_rust_pipeline(size, threads, iter_size1, iter_size2),
         "std-threads" => std_threads::std_threads_pipeline(size, threads, iter_size1, iter_size2),
         "tokio" => tokio::tokio_pipeline(size, threads, iter_size1, iter_size2),
         "rayon" => rayon::rayon_pipeline(size, threads, iter_size1, iter_size2),
