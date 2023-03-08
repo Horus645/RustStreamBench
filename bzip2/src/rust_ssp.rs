@@ -3,6 +3,8 @@ use std::io::prelude::*;
 use std::mem;
 use std::time::SystemTime;
 
+use crate::BLOCK_SIZE;
+
 use rust_spp::*;
 
 struct Tcontent {
@@ -42,7 +44,6 @@ pub fn rust_ssp(threads: usize, file_action: &str, file_name: &str) {
         file.read_to_end(&mut buffer_input).unwrap();
 
         // initialization
-        let block_size = 900000;
         let mut pos_init: usize;
         let mut pos_end = 0;
         let mut bytes_left = buffer_input.len();
@@ -80,10 +81,10 @@ pub fn rust_ssp(threads: usize, file_action: &str, file_name: &str) {
 
         while bytes_left > 0 {
             pos_init = pos_end;
-            pos_end += if bytes_left < block_size {
+            pos_end += if bytes_left < BLOCK_SIZE {
                 buffer_input.len() - pos_end
             } else {
-                block_size
+                BLOCK_SIZE
             };
             bytes_left -= pos_end - pos_init;
 
@@ -99,16 +100,15 @@ pub fn rust_ssp(threads: usize, file_action: &str, file_name: &str) {
         }
 
         let collection = pipeline.collect();
+        // write stage
+        for content in collection {
+            buffer_output.extend(&content.buffer_output[0..content.output_size as usize]);
+        }
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
             system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
         println!("Execution time: {} sec", in_sec);
-
-        // write stage
-        for content in collection {
-            buffer_output.extend(&content.buffer_output[0..content.output_size as usize]);
-        }
 
         // write compressed data to file
         buf_write.write_all(&buffer_output).unwrap();
@@ -124,7 +124,6 @@ pub fn rust_ssp(threads: usize, file_action: &str, file_name: &str) {
         file.read_to_end(&mut buffer_input).unwrap();
 
         // initialization
-        let block_size = 900000;
         let mut pos_init: usize;
         let mut pos_end = 0;
         let mut bytes_left = buffer_input.len();
@@ -135,11 +134,11 @@ pub fn rust_ssp(threads: usize, file_action: &str, file_name: &str) {
             pos_end += {
                 // find the ending position by identifing the header of the next stream block
                 let buffer_slice;
-                if buffer_input.len() > block_size + 10000 {
-                    if (pos_init + block_size + 10000) > buffer_input.len() {
+                if buffer_input.len() > BLOCK_SIZE + 10000 {
+                    if (pos_init + BLOCK_SIZE + 10000) > buffer_input.len() {
                         buffer_slice = &buffer_input[pos_init + 10..];
                     } else {
-                        buffer_slice = &buffer_input[pos_init + 10..pos_init + block_size + 10000];
+                        buffer_slice = &buffer_input[pos_init + 10..pos_init + BLOCK_SIZE + 10000];
                     }
                 } else {
                     buffer_slice = &buffer_input[pos_init + 10..];
@@ -192,7 +191,7 @@ pub fn rust_ssp(threads: usize, file_action: &str, file_name: &str) {
             pipeline
                 .post(Tcontent {
                     buffer_input: buffer_slice.to_vec().clone(),
-                    buffer_output: vec![0; block_size],
+                    buffer_output: vec![0; BLOCK_SIZE],
                     output_size: 0,
                 })
                 .unwrap();
@@ -223,7 +222,6 @@ pub fn rust_ssp_io(threads: usize, file_action: &str, file_name: &str) {
         let compressed_file_name = file_name.to_owned() + ".bz2";
 
         // initialization
-        let block_size = 900000;
         let mut pos_init: usize;
         let mut pos_end = 0;
         let mut bytes_left: usize = file.metadata().unwrap().len() as usize;
@@ -261,10 +259,10 @@ pub fn rust_ssp_io(threads: usize, file_action: &str, file_name: &str) {
 
         while bytes_left > 0 {
             pos_init = pos_end;
-            pos_end += if bytes_left < block_size {
+            pos_end += if bytes_left < BLOCK_SIZE {
                 file.metadata().unwrap().len() as usize - pos_end
             } else {
-                block_size
+                BLOCK_SIZE
             };
             bytes_left -= pos_end - pos_init;
 
@@ -297,7 +295,6 @@ pub fn rust_ssp_io(threads: usize, file_action: &str, file_name: &str) {
         file.read_to_end(&mut buffer_input).unwrap();
 
         // initialization
-        let block_size = 900000;
         let mut pos_init: usize;
         let mut pos_end = 0;
         let mut bytes_left = buffer_input.len();
@@ -308,11 +305,11 @@ pub fn rust_ssp_io(threads: usize, file_action: &str, file_name: &str) {
             pos_end += {
                 // find the ending position by identifing the header of the next stream block
                 let buffer_slice;
-                if buffer_input.len() > block_size + 10000 {
-                    if (pos_init + block_size + 10000) > buffer_input.len() {
+                if buffer_input.len() > BLOCK_SIZE + 10000 {
+                    if (pos_init + BLOCK_SIZE + 10000) > buffer_input.len() {
                         buffer_slice = &buffer_input[pos_init + 10..];
                     } else {
-                        buffer_slice = &buffer_input[pos_init + 10..pos_init + block_size + 10000];
+                        buffer_slice = &buffer_input[pos_init + 10..pos_init + BLOCK_SIZE + 10000];
                     }
                 } else {
                     buffer_slice = &buffer_input[pos_init + 10..];
@@ -365,7 +362,7 @@ pub fn rust_ssp_io(threads: usize, file_action: &str, file_name: &str) {
             pipeline
                 .post(Tcontent {
                     buffer_input: buffer_slice.to_vec().clone(),
-                    buffer_output: vec![0; block_size],
+                    buffer_output: vec![0; BLOCK_SIZE],
                     output_size: 0,
                 })
                 .unwrap();
@@ -381,4 +378,3 @@ pub fn rust_ssp_io(threads: usize, file_action: &str, file_name: &str) {
         std::fs::remove_file(file_name).unwrap();
     }
 }
-

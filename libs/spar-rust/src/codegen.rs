@@ -1,5 +1,5 @@
 use crate::spar_stream::{Replicate, SparStage, SparStream, SparVar, VarType};
-use proc_macro2::{Delimiter, Group, Ident, Span, TokenStream, TokenTree};
+use proc_macro2::{Group, Ident, Span, TokenStream, TokenTree};
 use quote::{quote, ToTokens};
 
 struct Dispatcher {
@@ -138,34 +138,62 @@ fn get_idents_and_types_from_spar_vars(vars: &[SparVar]) -> (Vec<Ident>, Vec<Var
 
 fn rust_spp_stage_struct_gen(stage: &SparStage) -> TokenStream {
     let (in_idents, in_types) = get_idents_and_types_from_spar_vars(&stage.attrs.input);
-    let out_types = &stage.attrs.output;
+    let (out_idents, out_types) = get_idents_and_types_from_spar_vars(&stage.attrs.output);
 
     let struct_name = format!("SparStage{}", stage.id);
     let struct_ident = Ident::new(&struct_name, Span::call_site());
     let stage_code = &stage.code;
+    let state = &stage.state;
+    let state_idents: TokenStream = state
+        .iter()
+        .flat_map(|var| {
+            let ident = &var.identifier;
+            quote! { #ident, }
+        })
+        .collect();
 
     let mut code = quote! {
         struct #struct_ident {
-            // TODO: we need to declare variables for stateful computation
+            #(#state),*
         }
 
         impl #struct_ident {
-            fn new() -> Self {
-                Self {}
+            fn new(#(#state),*) -> Self {
+                Self { #state_idents }
             }
         }
     };
 
-    if !in_types.is_empty() && !out_types.0.is_empty() {
+    let state_deconstruct: TokenStream = state
+        .iter()
+        .flat_map(|var| {
+            let ident = &var.identifier;
+            if stage.attrs.output.contains(var) {
+                quote! {
+                    let mut #ident = self.#ident.clone();
+                }
+            } else {
+                quote! {
+                    let #ident = &mut self.#ident;
+                }
+            }
+        })
+        .collect();
+
+    if !in_types.is_empty() && !out_types.is_empty() {
         let in_types = make_tuple(&in_types);
+        let out_types = make_tuple(&out_types);
 
         let input_tuple = make_mut_tuple(&in_idents);
+        let output_tuple = make_tuple(&out_idents);
 
         code.extend(quote! {
             impl rust_spp::blocks::inout_block::InOut<#in_types, #out_types> for #struct_ident {
                 fn process(&mut self, input: #in_types) -> Option<#out_types> {
                     let #input_tuple = input;
+                    #state_deconstruct
                     #stage_code
+                    Some(#output_tuple)
                 }
             }
         });
@@ -176,6 +204,7 @@ fn rust_spp_stage_struct_gen(stage: &SparStage) -> TokenStream {
             impl rust_spp::blocks::in_block::In<#in_types> for #struct_ident {
                 fn process(&mut self, input: #in_types, order: u64) {
                     let #input_tuple = input;
+                    #state_deconstruct
                     #stage_code
                 }
             }
@@ -205,15 +234,40 @@ fn rust_spp_gen_top_level_code(spar_stream: &mut SparStream) -> (Vec<TokenStream
 }
 
 fn rust_spp_pipeline_arg(stage: &SparStage) -> TokenStream {
-    let SparStage { attrs, id, .. } = stage;
+    let SparStage {
+        attrs, id, state, ..
+    } = stage;
     let struct_name = format!("SparStage{id}");
     let struct_ident = Ident::new(&struct_name, Span::call_site());
 
+    let struct_new_args: Vec<TokenStream> = state
+        .iter()
+        .map(|var| {
+            let ident = &var.identifier;
+            quote! { #ident }
+        })
+        .collect();
+
     if attrs.replicate.is_none() {
-        quote! { rust_spp::sequential!(#struct_ident::new()) }
+        quote! { rust_spp::sequential_ordered!(#struct_ident::new( #(#struct_new_args.clone()),* )) }
     } else {
         let replicate = gen_replicate(&attrs.replicate);
-        quote! { rust_spp::parallel!(#struct_ident::new(), #replicate) }
+        quote! { rust_spp::parallel!(#struct_ident::new( #(#struct_new_args.clone()),* ), #replicate) }
+    }
+}
+
+fn rust_spp_gen_pipeline(spar_stream: &SparStream, gen: TokenStream) -> TokenStream {
+    if let Some(stage) = spar_stream.stages.last() {
+        if stage.attrs.replicate == Replicate::None {
+            return quote! { let mut spar_pipeline = rust_spp::pipeline![#gen]; };
+        }
+    }
+
+    quote! {
+        let mut spar_pipeline = rust_spp::pipeline![
+            #gen,
+            collect_ordered!()
+        ];
     }
 }
 
@@ -234,15 +288,17 @@ fn rust_spp_gen(spar_stream: &mut SparStream) -> TokenStream {
         gen.extend(rust_spp_pipeline_arg(stage));
     }
 
-    code.extend(quote! {
-        let spar_pipeline = rust_spp::pipeline![
-            #gen,
-            collect_ordered!()
-        ];
-
-        #dispatcher
-        spar_pipeline.collect()
-    });
+    code.extend(rust_spp_gen_pipeline(spar_stream, gen));
+    code.extend(quote! {#dispatcher});
+    if !spar_stream.attrs.output.is_empty() {
+        code.extend(quote! {
+            let collection = spar_pipeline.collect();
+        })
+    } else {
+        code.extend(quote! {
+            spar_pipeline.end_and_wait();
+        })
+    }
 
     code
 }
@@ -250,8 +306,34 @@ fn rust_spp_gen(spar_stream: &mut SparStream) -> TokenStream {
 pub fn codegen(mut spar_stream: SparStream) -> TokenStream {
     let mut code = gen_spar_num_workers();
     code.extend(rust_spp_gen(&mut spar_stream));
+    let output = spar_stream.attrs.output;
+    let (ident, vtype) = get_idents_and_types_from_spar_vars(&output);
 
-    Group::new(Delimiter::Brace, code).into_token_stream()
+    for (ident, vtype) in ident.iter().zip(vtype) {
+        code.extend(quote! {
+            let mut #ident: #vtype = Vec::new();
+
+        });
+    }
+
+    if ident.len() > 1 {
+        for (i, ident) in ident.iter().enumerate() {
+            code.extend(quote! {
+                for tuple in collection {
+                    #ident.extend(tuple.#i);
+                }
+            });
+        }
+    } else if ident.len() == 1 {
+        let ident = &ident[0];
+        code.extend(quote! {
+            for elem in collection {
+                #ident.extend(elem);
+            }
+        })
+    }
+
+    code
 }
 
 //TODO: test the code generation, once we figure it out

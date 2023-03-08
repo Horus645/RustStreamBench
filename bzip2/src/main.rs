@@ -8,6 +8,7 @@ mod rayon;
 mod pipeliner;
 mod spar_rust;
 
+pub const BLOCK_SIZE: usize = 900000;
 fn main() -> std::io::Result<()>{
     let args: Vec<String> = env::args().collect();
     if args.len() < 4 {
