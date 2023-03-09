@@ -198,16 +198,15 @@ pub fn rust_ssp(threads: usize, file_action: &str, file_name: &str) {
         }
 
         let collection = pipeline.collect();
+        // write stage
+        for content in collection {
+            buffer_output.extend(&content.buffer_output[0..content.output_size as usize]);
+        }
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
             system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
         println!("Execution time: {} sec", in_sec);
-
-        // write stage
-        for content in collection {
-            buffer_output.extend(&content.buffer_output[0..content.output_size as usize]);
-        }
 
         // write decompressed data to file
         buf_write.write_all(&buffer_output).unwrap();
