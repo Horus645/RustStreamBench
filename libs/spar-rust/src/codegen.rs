@@ -258,7 +258,7 @@ fn rust_spp_pipeline_arg(stage: &SparStage) -> TokenStream {
 
 fn rust_spp_gen_pipeline(spar_stream: &SparStream, gen: TokenStream) -> TokenStream {
     if let Some(stage) = spar_stream.stages.last() {
-        if stage.attrs.replicate == Replicate::None {
+        if stage.attrs.replicate == Replicate::None && stage.attrs.output.is_empty() {
             return quote! { let mut spar_pipeline = rust_spp::pipeline![#gen]; };
         }
     }
@@ -303,11 +303,9 @@ fn rust_spp_gen(spar_stream: &mut SparStream) -> TokenStream {
     code
 }
 
-pub fn codegen(mut spar_stream: SparStream) -> TokenStream {
-    let mut code = gen_spar_num_workers();
-    code.extend(rust_spp_gen(&mut spar_stream));
-    let output = spar_stream.attrs.output;
-    let (ident, vtype) = get_idents_and_types_from_spar_vars(&output);
+fn restore_external_vars(spar_stream: &SparStream) -> TokenStream {
+    let (ident, vtype) = get_idents_and_types_from_spar_vars(&spar_stream.attrs.output);
+    let mut code = TokenStream::new();
 
     for (ident, vtype) in ident.iter().zip(vtype) {
         code.extend(quote! {
@@ -332,6 +330,14 @@ pub fn codegen(mut spar_stream: SparStream) -> TokenStream {
             }
         })
     }
+
+    code
+}
+
+pub fn codegen(mut spar_stream: SparStream) -> TokenStream {
+    let mut code = gen_spar_num_workers();
+    code.extend(rust_spp_gen(&mut spar_stream));
+    code.extend(restore_external_vars(&spar_stream));
 
     code
 }

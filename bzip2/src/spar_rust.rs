@@ -39,30 +39,40 @@ pub fn spar_rust(threads: usize, file_action: &str, file_name: &str) {
                 let buffer_input = buffer_slice.to_vec();
 
                 STAGE(
-                    INPUT(buffer_input: Vec<u8>, buffer_output: Vec<u8>),
+                    INPUT(buffer_input: Vec<u8>),
+                    OUTPUT(output: Vec<u8>, size: usize),
                     REPLICATE = threads,
                     {
+                        let mut bz_buffer: bzip2_sys::bz_stream;
                         unsafe {
-                            let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
+                            bz_buffer = mem::zeroed();
                             bzip2_sys::BZ2_bzCompressInit(&mut bz_buffer as *mut _, 9, 0, 30);
+                        }
 
-                            let mut output: Vec<u8> =
-                                vec![0; (buffer_input.len() as f64 * 1.01) as usize + 600];
+                        let mut output: Vec<u8> =
+                            vec![0; (buffer_input.len() as f64 * 1.01) as usize + 600];
 
-                            bz_buffer.next_in = buffer_input.as_ptr() as *mut _;
-                            bz_buffer.avail_in = buffer_input.len() as _;
-                            bz_buffer.next_out = output.as_mut_ptr() as *mut _;
-                            bz_buffer.avail_out = output.len() as _;
+                        bz_buffer.next_in = buffer_input.as_ptr() as *mut _;
+                        bz_buffer.avail_in = buffer_input.len() as _;
+                        bz_buffer.next_out = output.as_mut_ptr() as *mut _;
+                        bz_buffer.avail_out = output.len() as _;
 
+                        unsafe {
                             bzip2_sys::BZ2_bzCompress(
                                 &mut bz_buffer as *mut _,
                                 bzip2_sys::BZ_FINISH as _,
                             );
                             bzip2_sys::BZ2_bzCompressEnd(&mut bz_buffer as *mut _);
-
-                            // write stage
-                            buffer_output.extend(&output[0..bz_buffer.total_out_lo32 as usize]);
                         }
+                        let size = bz_buffer.total_out_lo32 as usize;
+                    },
+                );
+                // write stage
+                STAGE(
+                    INPUT(output: Vec<u8>, size: usize, buffer_output: Vec<u8>),
+                    REPLICATE = 1,
+                    {
+                        buffer_output.extend(&output[0..size]);
                     },
                 );
             }
@@ -123,27 +133,35 @@ pub fn spar_rust(threads: usize, file_action: &str, file_name: &str) {
                 let buffer_input = buffer_slice.to_vec();
 
                 STAGE(
-                    INPUT(buffer_input: Vec<u8>, buffer_output: Vec<u8>),
+                    INPUT(buffer_input: Vec<u8>),
+                    OUTPUT(output: Vec<u8>, size: usize),
                     REPLICATE = threads,
                     {
                         // computation
+                        let mut bz_buffer: bzip2_sys::bz_stream;
                         unsafe {
-                            let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
+                            bz_buffer = mem::zeroed();
                             bzip2_sys::BZ2_bzDecompressInit(&mut bz_buffer as *mut _, 0, 0);
+                        }
+                        let mut output: Vec<u8> = vec![0; BLOCK_SIZE];
 
-                            let mut output: Vec<u8> = vec![0; BLOCK_SIZE];
-
-                            bz_buffer.next_in = buffer_input.as_ptr() as *mut _;
-                            bz_buffer.avail_in = buffer_input.len() as _;
-                            bz_buffer.next_out = output.as_mut_ptr() as *mut _;
-                            bz_buffer.avail_out = output.len() as _;
-
+                        bz_buffer.next_in = buffer_input.as_ptr() as *mut _;
+                        bz_buffer.avail_in = buffer_input.len() as _;
+                        bz_buffer.next_out = output.as_mut_ptr() as *mut _;
+                        bz_buffer.avail_out = output.len() as _;
+                        unsafe {
                             bzip2_sys::BZ2_bzDecompress(&mut bz_buffer as *mut _);
                             bzip2_sys::BZ2_bzDecompressEnd(&mut bz_buffer as *mut _);
-
-                            // write stage
-                            buffer_output.extend(&output[0..bz_buffer.total_out_lo32 as usize]);
                         }
+                        let size = bz_buffer.total_out_lo32 as usize;
+                    },
+                );
+                STAGE(
+                    INPUT(output: Vec<u8>, size: usize, buffer_output: Vec<u8>),
+                    REPLICATE = 1,
+                    {
+                        // write stage
+                        buffer_output.extend(&output[0..size]);
                     },
                 );
             }
