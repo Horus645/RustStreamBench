@@ -14,7 +14,10 @@ readme = "README.md"
 opencv = {version = "0.48", features = ["contrib"]}
 
 # Rust-SSP
-rust-spp = { path = "~/../../libs/rust-ssp" }
+rust-spp = { path = "../libs/rust-ssp" }
+
+# spar-rust
+spar-rust = { path = "../libs/spar-rust" }
 
 # Rust Standard Library + Crossbeam
 crossbeam-channel = "0.5"
