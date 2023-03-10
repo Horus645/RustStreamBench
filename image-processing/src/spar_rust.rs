@@ -20,27 +20,23 @@ pub fn spar_rust(dir_name: &str, threads: usize) {
 
     let start = SystemTime::now();
 
-    let _ = to_stream!(OUTPUT(()), {
+    to_stream!({
         for image in all_images {
-            STAGE(INPUT(image: Image), OUTPUT(Image), REPLICATE = threads, {
+            let image = image;
+            STAGE(INPUT(image: Image), OUTPUT(image: Image), REPLICATE = threads, {
                 filter::saturation(&mut image, 0.2).unwrap();
-                Some(image)
             });
-            STAGE(INPUT(image: Image), OUTPUT(Image), REPLICATE = threads, {
+            STAGE(INPUT(image: Image), OUTPUT(image: Image), REPLICATE = threads, {
                 filter::emboss(&mut image).unwrap();
-                Some(image)
             });
-            STAGE(INPUT(image: Image), OUTPUT(Image), REPLICATE = threads, {
+            STAGE(INPUT(image: Image), OUTPUT(image: Image), REPLICATE = threads, {
                 filter::gamma(&mut image, 2.0).unwrap();
-                Some(image)
             });
-            STAGE(INPUT(image: Image), OUTPUT(Image), REPLICATE = threads, {
+            STAGE(INPUT(image: Image), OUTPUT(image: Image), REPLICATE = threads, {
                 filter::sharpen(&mut image).unwrap();
-                Some(image)
             });
-            STAGE(INPUT(image: Image), OUTPUT(()), REPLICATE = threads, {
+            STAGE(INPUT(image: Image), OUTPUT(image: Image), REPLICATE = threads, {
                 filter::grayscale(&mut image).unwrap();
-                Some(())
             });
         }
     });

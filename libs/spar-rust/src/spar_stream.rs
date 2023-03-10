@@ -181,10 +181,10 @@ impl TryFrom<&proc_macro::TokenStream> for SparStream {
         }
 
         // variables that exist outside the stream, and that we MAY have to restore later
-        let mut external_vars: Vec<SparVar> = Vec::new();
+        let mut external_vars: Vec<SparVar> = attrs.input.clone();
         for stage in &stages {
             for input in &stage.state {
-                if !attrs.input.iter().any(|var| var == input) {
+                if !attrs.input.contains(input) {
                     return Err(syn::Error::new(Span::call_site(), "every stage input must either be sent from the previous stage, or be a stream input"));
                 }
 
