@@ -287,26 +287,31 @@ pub fn tokio_io(threads: usize, file_action: &str, file_name: &str) {
         let pipeline = processing_stream
             .map(move |mut content: Tcontent| {
                 // computation
-                unsafe {
-                    let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
-                    bzip2_sys::BZ2_bzCompressInit(&mut bz_buffer as *mut _, 9, 0, 30);
+                spawn_return!({
+                    unsafe {
+                        let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
+                        bzip2_sys::BZ2_bzCompressInit(&mut bz_buffer as *mut _, 9, 0, 30);
 
-                    bz_buffer.next_in = content.buffer_input.as_ptr() as *mut _;
-                    bz_buffer.avail_in = content.buffer_input.len() as _;
-                    bz_buffer.next_out = content.buffer_output.as_mut_ptr() as *mut _;
-                    bz_buffer.avail_out = content.buffer_output.len() as _;
+                        bz_buffer.next_in = content.buffer_input.as_ptr() as *mut _;
+                        bz_buffer.avail_in = content.buffer_input.len() as _;
+                        bz_buffer.next_out = content.buffer_output.as_mut_ptr() as *mut _;
+                        bz_buffer.avail_out = content.buffer_output.len() as _;
 
-                    bzip2_sys::BZ2_bzCompress(&mut bz_buffer as *mut _, bzip2_sys::BZ_FINISH as _);
-                    bzip2_sys::BZ2_bzCompressEnd(&mut bz_buffer as *mut _);
+                        bzip2_sys::BZ2_bzCompress(
+                            &mut bz_buffer as *mut _,
+                            bzip2_sys::BZ_FINISH as _,
+                        );
+                        bzip2_sys::BZ2_bzCompressEnd(&mut bz_buffer as *mut _);
 
-                    content.output_size = bz_buffer.total_out_lo32;
-                }
-
-                futures::future::ready(content)
+                        content.output_size = bz_buffer.total_out_lo32;
+                    }
+                    content
+                })
             })
             .buffered(threads)
             .for_each(move |content| {
                 // write compressed data to file
+                let content = content.unwrap();
                 buf_write
                     .write_all(&content.buffer_output[0..content.output_size as usize])
                     .unwrap();
@@ -392,25 +397,28 @@ pub fn tokio_io(threads: usize, file_action: &str, file_name: &str) {
         let pipeline = processing_stream
             .map(move |mut content: Tcontent| {
                 // computation
-                unsafe {
-                    let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
-                    bzip2_sys::BZ2_bzDecompressInit(&mut bz_buffer as *mut _, 0, 0);
+                spawn_return!({
+                    unsafe {
+                        let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
+                        bzip2_sys::BZ2_bzDecompressInit(&mut bz_buffer as *mut _, 0, 0);
 
-                    bz_buffer.next_in = content.buffer_input.as_ptr() as *mut _;
-                    bz_buffer.avail_in = content.buffer_input.len() as _;
-                    bz_buffer.next_out = content.buffer_output.as_mut_ptr() as *mut _;
-                    bz_buffer.avail_out = content.buffer_output.len() as _;
+                        bz_buffer.next_in = content.buffer_input.as_ptr() as *mut _;
+                        bz_buffer.avail_in = content.buffer_input.len() as _;
+                        bz_buffer.next_out = content.buffer_output.as_mut_ptr() as *mut _;
+                        bz_buffer.avail_out = content.buffer_output.len() as _;
 
-                    bzip2_sys::BZ2_bzDecompress(&mut bz_buffer as *mut _);
-                    bzip2_sys::BZ2_bzDecompressEnd(&mut bz_buffer as *mut _);
+                        bzip2_sys::BZ2_bzDecompress(&mut bz_buffer as *mut _);
+                        bzip2_sys::BZ2_bzDecompressEnd(&mut bz_buffer as *mut _);
 
-                    content.output_size = bz_buffer.total_out_lo32;
-                }
-                futures::future::ready(content)
+                        content.output_size = bz_buffer.total_out_lo32;
+                    }
+                    content
+                })
             })
             .buffered(threads)
             .for_each(move |content| {
                 // write compressed data to file
+                let content = content.unwrap();
                 buf_write
                     .write_all(&content.buffer_output[0..content.output_size as usize])
                     .unwrap();
