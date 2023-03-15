@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::{prelude::*, BufWriter};
 use std::mem;
 use std::time::SystemTime;
 
@@ -10,7 +10,8 @@ pub fn sequential(file_action: &str, file_name: &str) {
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
-        let mut buf_write = File::create(compressed_file_name).unwrap();
+        let outfile = File::create(compressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
         let mut buffer_input = vec![];
         let mut buffer_output = vec![];
 
@@ -67,7 +68,8 @@ pub fn sequential(file_action: &str, file_name: &str) {
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
-        let mut buf_write = File::create(decompressed_file_name).unwrap();
+        let outfile = File::create(decompressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
         let mut buffer_input = vec![];
         let mut buffer_output = vec![];
 
@@ -149,12 +151,8 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
-        let mut buf_write = File::create(compressed_file_name).unwrap();
-        //let mut buffer_input = vec![];
-        //let mut buffer_output = vec![];
-
-        // read data to memory
-        //file.read_to_end(&mut buffer_input).unwrap();
+        let outfile = File::create(compressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
 
         // initialization
         let mut pos_init: usize;
@@ -193,7 +191,6 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
                 bzip2_sys::BZ2_bzCompressEnd(&mut bz_buffer as *mut _);
 
                 // write stage
-                //buffer_output.extend(&output[0..bz_buffer.total_out_lo32 as usize]);
                 buf_write
                     .write_all(&output[0..bz_buffer.total_out_lo32 as usize])
                     .unwrap();
@@ -206,14 +203,13 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
         println!("Execution time: {} sec", in_sec);
 
         // write compressed data to file
-        //buf_write.write_all(&buffer_output).unwrap();
         std::fs::remove_file(file_name).unwrap();
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
-        let mut buf_write = File::create(decompressed_file_name).unwrap();
+        let outfile = File::create(decompressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
         let mut buffer_input = vec![];
-        //let mut buffer_output = vec![];
 
         // read data to memory
         file.read_to_end(&mut buffer_input).unwrap();
@@ -242,7 +238,7 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
                 let ret = buffer_slice
                     .windows(10)
                     .position(|window| window == b"BZh91AY&SY");
-                 match ret {
+                match ret {
                     Some(i) => i + 10,
                     None => buffer_input.len() - pos_init,
                 }
@@ -273,7 +269,6 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
                 bzip2_sys::BZ2_bzDecompressEnd(&mut bz_buffer as *mut _);
 
                 // write stage
-                //buffer_output.extend(&output[0..bz_buffer.total_out_lo32 as usize]);
                 buf_write
                     .write_all(&output[0..bz_buffer.total_out_lo32 as usize])
                     .unwrap();
@@ -286,8 +281,6 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
         println!("Execution time: {} sec", in_sec);
 
         // write decompressed data to file
-        //buf_write.write_all(&buffer_output).unwrap();
         std::fs::remove_file(file_name).unwrap();
     }
 }
-

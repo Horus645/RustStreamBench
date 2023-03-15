@@ -1,7 +1,7 @@
-use std::fs::File;
 use std::io::prelude::*;
 use std::mem;
 use std::time::SystemTime;
+use std::{fs::File, io::BufWriter};
 
 use crate::BLOCK_SIZE;
 
@@ -53,7 +53,8 @@ pub fn std_threads(threads: usize, file_action: &str, file_name: &str) {
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
-        let mut buf_write = File::create(compressed_file_name).unwrap();
+        let outfile = File::create(compressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
         let mut buffer_input = vec![];
         let mut buffer_output = vec![];
 
@@ -138,15 +139,15 @@ pub fn std_threads(threads: usize, file_action: &str, file_name: &str) {
         let mut collection: Vec<Tcontent> = queue2_recv.iter().collect();
         collection.sort_by_key(|content| content.order);
 
-        let system_duration = start.elapsed().expect("Failed to get render time?");
-        let in_sec =
-            system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
-        println!("Execution time: {} sec", in_sec);
-
         // write stage
         for content in collection {
             buffer_output.extend(&content.buffer_output[0..content.output_size as usize]);
         }
+
+        let system_duration = start.elapsed().expect("Failed to get render time?");
+        let in_sec =
+            system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
+        println!("Execution time: {} sec", in_sec);
 
         // write compressed data to file
         buf_write.write_all(&buffer_output).unwrap();
@@ -154,7 +155,8 @@ pub fn std_threads(threads: usize, file_action: &str, file_name: &str) {
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
-        let mut buf_write = File::create(decompressed_file_name).unwrap();
+        let outfile = File::create(decompressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
         let mut buffer_input = vec![];
         let mut buffer_output = vec![];
 
@@ -258,15 +260,15 @@ pub fn std_threads(threads: usize, file_action: &str, file_name: &str) {
         let mut collection: Vec<Tcontent> = queue2_recv.iter().collect();
         collection.sort_by_key(|content| content.order);
 
-        let system_duration = start.elapsed().expect("Failed to get render time?");
-        let in_sec =
-            system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
-        println!("Execution time: {} sec", in_sec);
-
         // write stage
         for content in collection {
             buffer_output.extend(&content.buffer_output[0..content.output_size as usize]);
         }
+
+        let system_duration = start.elapsed().expect("Failed to get render time?");
+        let in_sec =
+            system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
+        println!("Execution time: {} sec", in_sec);
 
         // write decompressed data to file
         buf_write.write_all(&buffer_output).unwrap();
@@ -279,7 +281,8 @@ pub fn std_threads_io(threads: usize, file_action: &str, file_name: &str) {
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
-        let mut buf_write = File::create(compressed_file_name).unwrap();
+        let outfile = File::create(compressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
 
         // initialization
 
@@ -411,7 +414,8 @@ pub fn std_threads_io(threads: usize, file_action: &str, file_name: &str) {
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
-        let mut buf_write = File::create(decompressed_file_name).unwrap();
+        let outfile = File::create(decompressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
         let mut buffer_input = vec![];
 
         // read data to memory

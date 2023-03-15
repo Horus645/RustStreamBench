@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::{prelude::*, BufWriter};
 use std::mem;
 use std::time::SystemTime;
 
@@ -36,7 +36,8 @@ pub fn rust_ssp(threads: usize, file_action: &str, file_name: &str) {
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
-        let mut buf_write = File::create(compressed_file_name).unwrap();
+        let outfile = File::create(compressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
         let mut buffer_input = vec![];
         let mut buffer_output = vec![];
 
@@ -116,7 +117,8 @@ pub fn rust_ssp(threads: usize, file_action: &str, file_name: &str) {
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
-        let mut buf_write = File::create(decompressed_file_name).unwrap();
+        let outfile = File::create(decompressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
         let mut buffer_input = vec![];
         let mut buffer_output = vec![];
 

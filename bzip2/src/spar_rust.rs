@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::{prelude::*, BufWriter};
 use std::mem;
 use std::time::SystemTime;
 
@@ -16,7 +16,8 @@ pub fn spar_rust(threads: usize, file_action: &str, file_name: &str) {
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
-        let mut buf_write = File::create(compressed_file_name).unwrap();
+        let outfile = File::create(compressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
 
         // initialization
         let mut pos_init: usize;
@@ -89,7 +90,8 @@ pub fn spar_rust(threads: usize, file_action: &str, file_name: &str) {
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
-        let mut buf_write = File::create(decompressed_file_name).unwrap();
+        let outfile = File::create(decompressed_file_name).unwrap();
+        let mut buf_write = BufWriter::new(outfile);
         let buffer_output = vec![];
 
         // initialization
@@ -237,11 +239,12 @@ pub fn spar_rust_io(threads: usize, file_action: &str, file_name: &str) {
                 );
                 // write stage
                 STAGE(INPUT(output: Vec<u8>, size: usize, filename: String), {
-                    let mut buf_write = File::options()
+                    let file = File::options()
                         .create(true)
                         .append(true)
                         .open(filename)
                         .unwrap();
+                    let mut buf_write = BufWriter::new(file);
                     buf_write.write_all(&output[0..size]).unwrap();
                 });
             }
@@ -326,11 +329,12 @@ pub fn spar_rust_io(threads: usize, file_action: &str, file_name: &str) {
                     },
                 );
                 STAGE(INPUT(output: Vec<u8>, size: usize, filename: String), {
-                    let mut buf_write = File::options()
+                    let file = File::options()
                         .create(true)
                         .append(true)
                         .open(filename)
                         .unwrap();
+                    let mut buf_write = BufWriter::new(file);
                     buf_write.write_all(&output[0..size]).unwrap();
                 });
             }

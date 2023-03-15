@@ -1,7 +1,7 @@
 [package]
 name = "bzip2"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 authors = ["Dalvan Griebler <dalvan.griebler@pucrs.br>",
 		   "Júnior Löff <junior.loff@edu.pucrs.br>",
 	   	   "Renato B. Hoffmann <renato.hoffmann@edu.pucrs.br>",
