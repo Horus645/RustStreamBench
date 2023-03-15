@@ -5,10 +5,8 @@ use std::{fs::File, io::BufWriter};
 
 use crossbeam_channel::unbounded;
 use {
-    futures::future::lazy,
-    futures::sync::*,
-    futures::{stream, Future, Stream},
-    tokio::prelude::*,
+    futures::{future::lazy, io::AllowStdIo, stream, task::Poll, StreamExt},
+    tokio::sync::oneshot,
 };
 
 struct Tcontent {
@@ -21,10 +19,9 @@ struct Tcontent {
 macro_rules! spawn_return {
     ($block:expr) => {{
         let (sender, receiver) = oneshot::channel::<_>();
-        tokio::spawn(lazy(move || {
+        tokio::spawn(lazy(move |_| {
             let result = $block;
             sender.send(result).ok();
-            Ok(())
         }));
         receiver
     }};
@@ -51,31 +48,29 @@ pub fn tokio(threads: usize, file_action: &str, file_name: &str) {
 
         let start = SystemTime::now();
 
-        let processing_stream = stream::poll_fn(
-            move || -> Poll<Option<Tcontent>, futures::sync::oneshot::Canceled> {
-                if bytes_left == 0 {
-                    return Ok(Async::Ready(None));
-                }
+        let processing_stream = stream::poll_fn(move |_| -> Poll<Option<Tcontent>> {
+            if bytes_left == 0 {
+                return Poll::Ready(None);
+            }
 
-                let pos_init = pos_end;
-                pos_end += if bytes_left < block_size {
-                    buffer_input.len() - pos_end
-                } else {
-                    block_size
-                };
-                bytes_left -= pos_end - pos_init;
+            let pos_init = pos_end;
+            pos_end += if bytes_left < block_size {
+                buffer_input.len() - pos_end
+            } else {
+                block_size
+            };
+            bytes_left -= pos_end - pos_init;
 
-                let buffer_slice = &buffer_input[pos_init..pos_end];
-                let content = Tcontent {
-                    order,
-                    buffer_input: buffer_slice.to_vec(),
-                    buffer_output: vec![0; (buffer_slice.len() as f64 * 1.01) as usize + 600],
-                    output_size: 0,
-                };
-                order += 1;
-                Ok(Async::Ready(Some(content)))
-            },
-        );
+            let buffer_slice = &buffer_input[pos_init..pos_end];
+            let content = Tcontent {
+                order,
+                buffer_input: buffer_slice.to_vec(),
+                buffer_output: vec![0; (buffer_slice.len() as f64 * 1.01) as usize + 600],
+                output_size: 0,
+            };
+            order += 1;
+            Poll::Ready(Some(content))
+        });
 
         let (collection_send, collection_recv) = unbounded();
         let (send, recv) = (collection_send.clone(), collection_recv);
@@ -106,10 +101,10 @@ pub fn tokio(threads: usize, file_action: &str, file_name: &str) {
                 })
             })
             .buffer_unordered(threads)
-            .for_each(|_content| Ok(()))
-            .map_err(|e| println!("Error = {:?}", e));
+            .for_each(|_| futures::future::ready(()));
 
-        tokio::run(pipeline);
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(pipeline);
         drop(send);
 
         let mut collection: Vec<Tcontent> = recv.iter().collect();
@@ -176,27 +171,25 @@ pub fn tokio(threads: usize, file_action: &str, file_name: &str) {
 
         let start = SystemTime::now();
 
-        let processing_stream = stream::poll_fn(
-            move || -> Poll<Option<Tcontent>, futures::sync::oneshot::Canceled> {
-                // Stream region
-                if counter >= queue_blocks.len() {
-                    return Ok(Async::Ready(None));
-                }
+        let processing_stream = stream::poll_fn(move |_| -> Poll<Option<Tcontent>> {
+            // Stream region
+            if counter >= queue_blocks.len() {
+                return Poll::Ready(None);
+            }
 
-                let buffer_slice = &buffer_input[queue_blocks[counter].0..queue_blocks[counter].1];
+            let buffer_slice = &buffer_input[queue_blocks[counter].0..queue_blocks[counter].1];
 
-                let content = Tcontent {
-                    order: counter,
-                    buffer_input: buffer_slice.to_vec(),
-                    buffer_output: vec![0; block_size],
-                    output_size: 0,
-                };
+            let content = Tcontent {
+                order: counter,
+                buffer_input: buffer_slice.to_vec(),
+                buffer_output: vec![0; block_size],
+                output_size: 0,
+            };
 
-                counter += 1;
+            counter += 1;
 
-                Ok(Async::Ready(Some(content)))
-            },
-        );
+            Poll::Ready(Some(content))
+        });
 
         let (collection_send, collection_recv) = unbounded();
         let (send, recv) = (collection_send.clone(), collection_recv);
@@ -224,10 +217,10 @@ pub fn tokio(threads: usize, file_action: &str, file_name: &str) {
                 })
             })
             .buffer_unordered(threads)
-            .for_each(|_| Ok(()))
-            .map_err(|e| println!("Error = {:?}", e));
+            .for_each(|_| futures::future::ready(()));
 
-        tokio::run(pipeline);
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(pipeline);
         drop(send);
 
         let mut collection: Vec<Tcontent> = recv.iter().collect();
@@ -255,7 +248,7 @@ pub fn tokio_io(threads: usize, file_action: &str, file_name: &str) {
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
         let outfile = File::create(compressed_file_name).unwrap();
-        let mut buf_write = BufWriter::new(outfile);
+        let mut buf_write = BufWriter::new(AllowStdIo::new(outfile));
 
         // initialization
         let block_size = super::BLOCK_SIZE;
@@ -265,70 +258,63 @@ pub fn tokio_io(threads: usize, file_action: &str, file_name: &str) {
 
         let start = SystemTime::now();
 
-        let processing_stream = stream::poll_fn(
-            move || -> Poll<Option<Tcontent>, futures::sync::oneshot::Canceled> {
-                if bytes_left == 0 {
-                    return Ok(Async::Ready(None));
-                }
+        let processing_stream = stream::poll_fn(move |_| -> Poll<Option<Tcontent>> {
+            if bytes_left == 0 {
+                return Poll::Ready(None);
+            }
 
-                let pos_init = pos_end;
-                pos_end += if bytes_left < block_size {
-                    file.metadata().unwrap().len() as usize - pos_end
-                } else {
-                    block_size
-                };
-                bytes_left -= pos_end - pos_init;
+            let pos_init = pos_end;
+            pos_end += if bytes_left < block_size {
+                file.metadata().unwrap().len() as usize - pos_end
+            } else {
+                block_size
+            };
+            bytes_left -= pos_end - pos_init;
 
-                let mut buffer_slice: Vec<u8> = vec![0; pos_end - pos_init];
-                file.read_exact(&mut buffer_slice).unwrap();
+            let mut buffer_slice: Vec<u8> = vec![0; pos_end - pos_init];
+            file.read_exact(&mut buffer_slice).unwrap();
 
-                let content = Tcontent {
-                    order,
-                    buffer_input: buffer_slice.to_vec(),
-                    buffer_output: vec![0; (buffer_slice.len() as f64 * 1.01) as usize + 600],
-                    output_size: 0,
-                };
-                order += 1;
-                Ok(Async::Ready(Some(content)))
-            },
-        );
+            let content = Tcontent {
+                order,
+                buffer_input: buffer_slice.to_vec(),
+                buffer_output: vec![0; (buffer_slice.len() as f64 * 1.01) as usize + 600],
+                output_size: 0,
+            };
+            order += 1;
+            Poll::Ready(Some(content))
+        });
 
         let pipeline = processing_stream
             .map(move |mut content: Tcontent| {
-                spawn_return!({
-                    // computation
-                    unsafe {
-                        let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
-                        bzip2_sys::BZ2_bzCompressInit(&mut bz_buffer as *mut _, 9, 0, 30);
+                // computation
+                unsafe {
+                    let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
+                    bzip2_sys::BZ2_bzCompressInit(&mut bz_buffer as *mut _, 9, 0, 30);
 
-                        bz_buffer.next_in = content.buffer_input.as_ptr() as *mut _;
-                        bz_buffer.avail_in = content.buffer_input.len() as _;
-                        bz_buffer.next_out = content.buffer_output.as_mut_ptr() as *mut _;
-                        bz_buffer.avail_out = content.buffer_output.len() as _;
+                    bz_buffer.next_in = content.buffer_input.as_ptr() as *mut _;
+                    bz_buffer.avail_in = content.buffer_input.len() as _;
+                    bz_buffer.next_out = content.buffer_output.as_mut_ptr() as *mut _;
+                    bz_buffer.avail_out = content.buffer_output.len() as _;
 
-                        bzip2_sys::BZ2_bzCompress(
-                            &mut bz_buffer as *mut _,
-                            bzip2_sys::BZ_FINISH as _,
-                        );
-                        bzip2_sys::BZ2_bzCompressEnd(&mut bz_buffer as *mut _);
+                    bzip2_sys::BZ2_bzCompress(&mut bz_buffer as *mut _, bzip2_sys::BZ_FINISH as _);
+                    bzip2_sys::BZ2_bzCompressEnd(&mut bz_buffer as *mut _);
 
-                        content.output_size = bz_buffer.total_out_lo32;
-                    }
+                    content.output_size = bz_buffer.total_out_lo32;
+                }
 
-                    content
-                })
+                futures::future::ready(content)
             })
             .buffered(threads)
-            .for_each(move |content: Tcontent| {
+            .for_each(move |content| {
                 // write compressed data to file
                 buf_write
                     .write_all(&content.buffer_output[0..content.output_size as usize])
                     .unwrap();
-                Ok(())
-            })
-            .map_err(|e| println!("Error = {:?}", e));
+                futures::future::ready(())
+            });
 
-        tokio::run(pipeline);
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(pipeline);
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
@@ -383,60 +369,56 @@ pub fn tokio_io(threads: usize, file_action: &str, file_name: &str) {
 
         let start = SystemTime::now();
 
-        let processing_stream = stream::poll_fn(
-            move || -> Poll<Option<Tcontent>, futures::sync::oneshot::Canceled> {
-                // Stream region
-                if counter >= queue_blocks.len() {
-                    return Ok(Async::Ready(None));
-                }
+        let processing_stream = stream::poll_fn(move |_| -> Poll<Option<Tcontent>> {
+            // Stream region
+            if counter >= queue_blocks.len() {
+                return Poll::Ready(None);
+            }
 
-                let buffer_slice = &buffer_input[queue_blocks[counter].0..queue_blocks[counter].1];
+            let buffer_slice = &buffer_input[queue_blocks[counter].0..queue_blocks[counter].1];
 
-                let content = Tcontent {
-                    order: counter,
-                    buffer_input: buffer_slice.to_vec(),
-                    buffer_output: vec![0; block_size],
-                    output_size: 0,
-                };
+            let content = Tcontent {
+                order: counter,
+                buffer_input: buffer_slice.to_vec(),
+                buffer_output: vec![0; block_size],
+                output_size: 0,
+            };
 
-                counter += 1;
+            counter += 1;
 
-                Ok(Async::Ready(Some(content)))
-            },
-        );
+            Poll::Ready(Some(content))
+        });
 
         let pipeline = processing_stream
             .map(move |mut content: Tcontent| {
-                spawn_return!({
-                    // computation
-                    unsafe {
-                        let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
-                        bzip2_sys::BZ2_bzDecompressInit(&mut bz_buffer as *mut _, 0, 0);
+                // computation
+                unsafe {
+                    let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
+                    bzip2_sys::BZ2_bzDecompressInit(&mut bz_buffer as *mut _, 0, 0);
 
-                        bz_buffer.next_in = content.buffer_input.as_ptr() as *mut _;
-                        bz_buffer.avail_in = content.buffer_input.len() as _;
-                        bz_buffer.next_out = content.buffer_output.as_mut_ptr() as *mut _;
-                        bz_buffer.avail_out = content.buffer_output.len() as _;
+                    bz_buffer.next_in = content.buffer_input.as_ptr() as *mut _;
+                    bz_buffer.avail_in = content.buffer_input.len() as _;
+                    bz_buffer.next_out = content.buffer_output.as_mut_ptr() as *mut _;
+                    bz_buffer.avail_out = content.buffer_output.len() as _;
 
-                        bzip2_sys::BZ2_bzDecompress(&mut bz_buffer as *mut _);
-                        bzip2_sys::BZ2_bzDecompressEnd(&mut bz_buffer as *mut _);
+                    bzip2_sys::BZ2_bzDecompress(&mut bz_buffer as *mut _);
+                    bzip2_sys::BZ2_bzDecompressEnd(&mut bz_buffer as *mut _);
 
-                        content.output_size = bz_buffer.total_out_lo32;
-                    }
-                    content
-                })
+                    content.output_size = bz_buffer.total_out_lo32;
+                }
+                futures::future::ready(content)
             })
             .buffered(threads)
-            .for_each(move |content: Tcontent| {
-                // write decompressed data to file
+            .for_each(move |content| {
+                // write compressed data to file
                 buf_write
                     .write_all(&content.buffer_output[0..content.output_size as usize])
                     .unwrap();
-                Ok(())
-            })
-            .map_err(|e| println!("Error = {:?}", e));
+                futures::future::ready(())
+            });
 
-        tokio::run(pipeline);
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(pipeline);
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
