@@ -21,13 +21,13 @@ pub enum BlockMode {
 }
 
 pub struct MonitorLoop {
-    loop_function: Box<dyn FnOnce() -> () + Send>,
+    loop_function: Box<dyn FnOnce() + Send>,
 }
 
 impl MonitorLoop {
     pub fn new<F>(function: F) -> MonitorLoop
     where
-        F: FnOnce() -> (),
+        F: FnOnce(),
         F: Send + 'static,
     {
         MonitorLoop {
