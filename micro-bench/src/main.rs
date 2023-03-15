@@ -1,16 +1,19 @@
-mod sequential;
+mod pipeliner;
+mod rayon;
 mod rust_ssp;
+mod sequential;
+mod spar_rust;
 mod std_threads;
 mod tokio;
-mod rayon;
-mod pipeliner;
-mod spar_rust;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 5 {
         println!();
-        panic!("Correct usage: $ ./{:?} <runtime> <img size> <nthreads> <iter size 1> <iter size 2>", args[0]);
+        panic!(
+            "Correct usage: $ ./{:?} <runtime> <img size> <nthreads> <iter size 1> <iter size 2>",
+            args[0]
+        );
     }
     let runtime = &args[1];
     let size = args[2].parse::<usize>().unwrap();

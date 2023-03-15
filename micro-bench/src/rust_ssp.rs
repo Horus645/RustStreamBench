@@ -5,7 +5,6 @@ use std::time::SystemTime;
 use rust_spp::*;
 
 struct Tcontent {
-    size: usize,
     line: i64,
     line_buffer: Vec<u8>,
     a_buffer: Vec<f64>,
@@ -19,9 +18,9 @@ pub fn rust_ssp_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size
     let pipeline = pipeline![
         parallel!(
             move |mut content: Tcontent| {
-                let init_a = -2.125 as f64;
-                let init_b = -1.5 as f64;
-                let range = 3.0 as f64;
+                let init_a = -2.125;
+                let init_b = -1.5;
+                let range = 3.0;
                 let step = range / (size as f64);
 
                 let im = init_b + (step * (content.line as f64));
@@ -53,9 +52,9 @@ pub fn rust_ssp_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size
         ),
         parallel!(
             move |mut content: Tcontent| {
-                let init_a = -2.125 as f64;
-                let init_b = -1.5 as f64;
-                let range = 3.0 as f64;
+                let init_a = -2.125;
+                let init_b = -1.5;
+                let range = 3.0;
                 let step = range / (size as f64);
 
                 let im = init_b + (step * (content.line as f64));
@@ -75,8 +74,8 @@ pub fn rust_ssp_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size
                             content.k_buffer[j] = ii;
                         }
                     }
-                    content.line_buffer[j] = (255 as f64
-                        - ((content.k_buffer[j] as f64) * 255 as f64
+                    content.line_buffer[j] = (255.0
+                        - ((content.k_buffer[j] as f64) * 255.0
                             / ((iter_size1 + iter_size2) as f64)))
                         as u8;
                 }
@@ -90,7 +89,6 @@ pub fn rust_ssp_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size
     for i in 0..size {
         pipeline
             .post(Tcontent {
-                size,
                 line: i as i64,
                 line_buffer: vec![0; size],
                 a_buffer: vec![0.0; size],

@@ -44,4 +44,3 @@ pub fn sequential(size: usize, iter_size1: i32, iter_size2: i32) {
     let mut buffer = File::create("result_sequential.txt").unwrap();
     buffer.write_all(&m).unwrap();
 }
-
