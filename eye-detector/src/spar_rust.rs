@@ -1,4 +1,22 @@
-use opencv::{core, objdetect, prelude::*, videoio};
+use opencv::{core, objdetect, prelude::*, videoio, types};
+use spar_rust::to_stream;
+
+struct MatData {
+    frame: Mat,
+}
+unsafe impl Sync for MatData {}
+unsafe impl Send for MatData {}
+
+struct EyesData {
+    frame: Mat,
+    equalized: Mat,
+    faces: types::VectorOfRect,
+}
+unsafe impl Sync for EyesData {}
+unsafe impl Send for EyesData {}
+
+#[path = "common.rs"]
+mod common;
 
 pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()> {
     let mut video_in = videoio::VideoCapture::from_file(input_video, videoio::CAP_FFMPEG)?;
@@ -21,30 +39,51 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
     //"haarcascade_frontalface_alt.xml".to_owned()
     let face_xml = core::find_file("config/haarcascade_frontalface_alt.xml", true, false)?;
     let eye_xml = core::find_file("config/haarcascade_eye.xml", true, false)?;
-    let mut face_detector = objdetect::CascadeClassifier::new(&face_xml)?;
-    let mut eyes_detector = objdetect::CascadeClassifier::new(&eye_xml)?;
 
-    loop {
-        // Read frame
-        let mut frame = Mat::default()?;
-        video_in.read(&mut frame)?;
-        if frame.size()?.width == 0 {
-            break;
+    to_stream!(INPUT(face_xml: String, eye_xml: String, video_out: videoio::VideoWriter), {
+        loop {
+            // Read frame
+            let mut frame = Mat::default()?;
+            video_in.read(&mut frame)?;
+            if frame.size()?.width == 0 {
+                break;
+            }
+            let frame = MatData { frame };
+
+            // Convert to gray and equalize frame
+            STAGE(INPUT(frame: MatData), OUTPUT(frame: MatData, equalized: MatData), REPLICATE = nthreads, {
+                let equalized = MatData { frame: common::prepare_frame(&frame.frame).unwrap() };
+            });
+    
+            // Detect faces
+            STAGE(INPUT(frame: MatData, equalized: MatData, face_xml: String), OUTPUT(eyes_data: EyesData), REPLICATE = nthreads, {
+                let mut face_detector = objdetect::CascadeClassifier::new(&face_xml).unwrap();
+                let faces = common::detect_faces(&equalized.frame, &mut face_detector).unwrap();
+                let eyes_data = EyesData {
+                    frame: frame.frame,
+                    equalized: equalized.frame,
+                    faces,
+                };
+            });
+    
+            STAGE(INPUT(eyes_data: EyesData, eye_xml: String), OUTPUT(frame: MatData), REPLICATE = nthreads, {
+                let mut eyes_detector = objdetect::CascadeClassifier::new(&eye_xml).unwrap();
+                let EyesData {
+		            mut frame,
+                    equalized,
+                    faces,
+                } = eyes_data;
+                for face in faces {
+                    let eyes = common::detect_eyes(&core::Mat::roi(&equalized, face).unwrap(), &mut eyes_detector).unwrap();
+                    common::draw_in_frame(&mut frame, &eyes, &face).unwrap();
+                }
+                let frame = MatData { frame };
+            });
+            //Write output frame
+            STAGE(INPUT(frame: MatData, video_out: videoio::VideoWriter), {
+                video_out.write(&mut frame.frame).unwrap();
+            });
         }
-
-        // Convert to gray and equalize frame
-        let equalized = common::prepare_frame(&frame)?;
-
-        // Detect faces
-        let faces = common::detect_faces(&equalized, &mut face_detector)?;
-
-        for face in faces {
-            let eyes = common::detect_eyes(&core::Mat::roi(&equalized, face)?, &mut eyes_detector)?;
-
-            common::draw_in_frame(&mut frame, &eyes, &face)?;
-        }
-        //Write output frame
-        video_out.write(&mut frame)?;
-    }
+    });
     Ok(())
 }

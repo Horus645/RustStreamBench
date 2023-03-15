@@ -1,6 +1,7 @@
-# !/bin/bash
+#!/bin/bash
 
-COMPILE_THREADS=3
+COMPILE_THREADS=$(nproc)
+set -e
 
 # FFmpeg installation
 echo "Installing FFMPEG ..."
@@ -12,8 +13,8 @@ mkdir build
 PREFIX="$PWD/build"
 PATH="$PREFIX/bin:$PATH" 
 PKG_CONFIG_PATH="$PREFIX/pkgconfig"
-./configure --prefix=$PREFIX --enable-nonfree --enable-pic --enable-shared
-make -j$COMPILE_THREADS
+./configure --prefix="$PREFIX" --enable-nonfree --enable-pic --enable-shared
+make -j"$COMPILE_THREADS"
 make install
 cd ..
 FFMPEG_HOME=$PWD/ffmpeg-3.4.8/build
@@ -31,7 +32,7 @@ git clone https://github.com/opencv/opencv_contrib.git opencv_contrib
 mkdir build
 cd build
 cmake -DOPENCV_GENERATE_PKGCONFIG=YES -DOPENCV_EXTRA_MODULES_PATH=../opencv_contrib/modules/face/ -DBUILD_PNG=ON -DBUILD_EXAMPLES=OFF -DWITH_FFMPEG=ON -DOPENCV_FFMPEG_SKIP_BUILD_CHECK=ON -DCMAKE_INSTALL_PREFIX=../ ..
-make -j$COMPILE_THREADS
+make -j"$COMPILE_THREADS"
 make install
 cd ../../
 
