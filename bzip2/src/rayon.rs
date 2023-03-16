@@ -158,7 +158,7 @@ pub fn rayon(threads: usize, file_action: &str, file_name: &str) {
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
             system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
-        println!("Execution time: {} sec", in_sec);
+        println!("Execution time: {in_sec} sec");
 
         // write compressed data to file
         buf_write.write_all(&buffer_output).unwrap();
@@ -247,7 +247,7 @@ pub fn rayon(threads: usize, file_action: &str, file_name: &str) {
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
             system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
-        println!("Execution time: {} sec", in_sec);
+        println!("Execution time: {in_sec} sec");
 
         // write decompressed data to file
         buf_write.write_all(&buffer_output).unwrap();
