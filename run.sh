@@ -219,7 +219,7 @@ run_eye_detector_bench() {
 		log "Running eye-detector sequential: $I"
 		for INPUT in ./inputs/eye-detector/*.mp4; do
 			INPUT_FILENAME="$(basename "$INPUT")"
-			check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"
+			check_and_mkdir "$BENCH_DIR"/"$INPUT_FILENAME"
 			CHECKSUMS_FILE="$CHECKSUMS_DIR"/"$INPUT_FILENAME".checksum
 			BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/sequential
 			./eye-detector/target/release/eye-detector seq 1 "$INPUT" > "$BENCHFILE"
@@ -238,7 +238,7 @@ run_eye_detector_bench() {
 				log "Running eye-detector $RUNTIME with $T threads: $I"
 				for INPUT in ./inputs/eye-detector/*.mp4; do
 					INPUT_FILENAME="$(basename "$INPUT")"
-					check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
+					check_and_mkdir "$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
 					CHECKSUMS_FILE="$CHECKSUMS_DIR"/"$INPUT_FILENAME".checksum
 					BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"/"$T"
 					./eye-detector/target/release/eye-detector "$RUNTIME" "$T" "$INPUT" > "$BENCHFILE"
