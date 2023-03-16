@@ -3,8 +3,7 @@ use {
     rust_spp::*,
 };
 
-#[path = "common.rs"]
-mod common;
+use super::common;
 
 struct MatData {
     frame: Mat,
@@ -28,9 +27,7 @@ impl DetectFaces {
         let face_xml =
             core::find_file("config/haarcascade_frontalface_alt.xml", true, false).unwrap();
         let face_detector = objdetect::CascadeClassifier::new(&face_xml).unwrap();
-        DetectFaces {
-            face_detector: face_detector,
-        }
+        DetectFaces { face_detector }
     }
 }
 impl InOut<MatData, EyesData> for DetectFaces {
@@ -43,8 +40,8 @@ impl InOut<MatData, EyesData> for DetectFaces {
 
         let out_data = EyesData {
             frame: in_data.frame,
-            equalized: equalized,
-            faces: faces,
+            equalized,
+            faces,
         };
         Some(out_data)
     }
@@ -57,9 +54,7 @@ impl DetectEyes {
     fn new() -> DetectEyes {
         let eye_xml = core::find_file("config/haarcascade_eye.xml", true, false).unwrap();
         let eye_detector = objdetect::CascadeClassifier::new(&eye_xml).unwrap();
-        DetectEyes {
-            eye_detector: eye_detector,
-        }
+        DetectEyes { eye_detector }
     }
 }
 impl InOut<EyesData, MatData> for DetectEyes {
@@ -85,8 +80,7 @@ struct WriteOutput {
 }
 impl WriteOutput {
     fn new(fps_out: f64, frame_size: core::Size) -> WriteOutput {
-        let fourcc =
-            videoio::VideoWriter::fourcc('m' as i8, 'p' as i8, 'g' as i8, '1' as i8).unwrap();
+        let fourcc = videoio::VideoWriter::fourcc('m', 'p', 'g', '1').unwrap();
         let video_out =
             videoio::VideoWriter::new("output.avi", fourcc, fps_out, frame_size, true).unwrap();
         let out_opened = videoio::VideoWriter::is_opened(&video_out).unwrap();
@@ -94,9 +88,7 @@ impl WriteOutput {
             panic!("Unable to open output video output.avi!");
         }
 
-        WriteOutput {
-            video_out: video_out,
-        }
+        WriteOutput { video_out }
     }
 }
 impl In<MatData> for WriteOutput {
@@ -126,12 +118,12 @@ pub fn rust_spp_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Resu
 
     loop {
         // Read and post frames
-        let mut frame = Mat::default()?;
+        let mut frame = Mat::default();
         video_in.read(&mut frame)?;
         if frame.size()?.width == 0 {
             break;
         }
-        pipeline.post(MatData { frame: frame }).unwrap();
+        pipeline.post(MatData { frame }).unwrap();
     }
 
     pipeline.end_and_wait();

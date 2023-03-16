@@ -5,8 +5,7 @@ use {
     std::thread,
 };
 
-#[path = "common.rs"]
-mod common;
+use super::common;
 
 struct StreamData {
     order: u64,
@@ -65,7 +64,7 @@ pub fn std_threads_eye_tracker(input_video: &String, nthreads: i32) -> opencv::R
             .get(videoio::VideoCaptureProperties::CAP_PROP_FRAME_HEIGHT as i32)
             .unwrap() as i32,
     );
-    let fourcc = videoio::VideoWriter::fourcc('m' as i8, 'p' as i8, 'g' as i8, '1' as i8).unwrap();
+    let fourcc = videoio::VideoWriter::fourcc('m', 'p', 'g', '1').unwrap();
     let fps_out = video_in
         .get(videoio::VideoCaptureProperties::CAP_PROP_FPS as i32)
         .unwrap();
@@ -79,7 +78,7 @@ pub fn std_threads_eye_tracker(input_video: &String, nthreads: i32) -> opencv::R
     let stage1_thread = thread::spawn(move || {
         let mut order_id: u64 = 0;
         loop {
-            let mut frame = Mat::default().unwrap();
+            let mut frame = Mat::default();
             video_in.read(&mut frame).unwrap();
             if frame.size().unwrap().width == 0 {
                 break;
@@ -87,7 +86,7 @@ pub fn std_threads_eye_tracker(input_video: &String, nthreads: i32) -> opencv::R
             queue1_send
                 .send(StreamData {
                     order: order_id,
-                    frame: frame,
+                    frame,
                     equalized: None,
                     faces: None,
                 })

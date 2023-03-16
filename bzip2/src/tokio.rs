@@ -4,10 +4,8 @@ use std::time::SystemTime;
 use std::{fs::File, io::BufWriter};
 
 use crossbeam_channel::unbounded;
-use {
-    futures::{future::lazy, stream, task::Poll, StreamExt},
-    tokio::sync::oneshot,
-};
+use futures::{future::lazy, stream, task::Poll, StreamExt};
+use tokio::sync::oneshot;
 
 struct Tcontent {
     order: usize,

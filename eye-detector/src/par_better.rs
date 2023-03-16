@@ -9,8 +9,7 @@ use std::sync::{Arc, RwLock};
 use std::thread::Thread;
 use std::time::Duration;
 
-#[path = "common.rs"]
-mod common;
+use super::common;
 
 struct StreamData {
     order: u64,
@@ -198,7 +197,7 @@ pub fn better_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result
             .get(videoio::VideoCaptureProperties::CAP_PROP_FRAME_HEIGHT as i32)
             .unwrap() as i32,
     );
-    let fourcc = videoio::VideoWriter::fourcc('m' as i8, 'p' as i8, 'g' as i8, '1' as i8).unwrap();
+    let fourcc = videoio::VideoWriter::fourcc('m', 'p', 'g', '1')?;
     let fps_out = video_in
         .get(videoio::VideoCaptureProperties::CAP_PROP_FPS as i32)
         .unwrap();
@@ -214,7 +213,7 @@ pub fn better_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result
         let mut order_id: u64 = 0;
         generator_send.set_send_handle(0, thread::current());
         loop {
-            let mut frame = Mat::default().unwrap();
+            let mut frame = Mat::default();
             video_in.read(&mut frame).unwrap();
             if frame.size().unwrap().width == 0 {
                 break;
@@ -224,7 +223,7 @@ pub fn better_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result
                 0,
                 StreamData {
                     order: order_id,
-                    frame: frame,
+                    frame,
                     equalized: None,
                     faces: None,
                 },

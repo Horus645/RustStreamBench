@@ -1,12 +1,7 @@
-use {
-    futures::future::lazy,
-    futures::sync::*,
-    futures::{stream, Future, Stream},
-    opencv::{core, objdetect, prelude::*, types, videoio},
-    tokio::prelude::*,
-};
-#[path = "common.rs"]
-mod common;
+use super::common;
+use futures::{future::lazy, stream, task::Poll, StreamExt};
+use opencv::{core, objdetect, prelude::*, types, videoio};
+use tokio::sync::oneshot;
 
 struct MatData {
     frame: Mat,
@@ -25,10 +20,9 @@ unsafe impl Send for EyesData {}
 macro_rules! spawn_return {
     ($block:expr) => {{
         let (sender, receiver) = oneshot::channel::<_>();
-        tokio::spawn(lazy(move || {
+        tokio::spawn(lazy(move |_| {
             let result = $block;
             sender.send(result).ok();
-            Ok(())
         }));
         receiver
     }};
@@ -44,7 +38,7 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
         video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FRAME_WIDTH as i32)? as i32,
         video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FRAME_HEIGHT as i32)? as i32,
     );
-    let fourcc = videoio::VideoWriter::fourcc('m' as i8, 'p' as i8, 'g' as i8, '1' as i8)?;
+    let fourcc = videoio::VideoWriter::fourcc('m', 'p', 'g', '1')?;
     let fps_out = video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FPS as i32)?;
     let mut video_out: videoio::VideoWriter =
         videoio::VideoWriter::new("output.avi", fourcc, fps_out, frame_size, true)?;
@@ -53,17 +47,15 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
         panic!("Unable to open output video output.avi!");
     }
 
-    let processing_stream = stream::poll_fn(
-        move || -> Poll<Option<MatData>, futures::sync::oneshot::Canceled> {
-            // Read frame
-            let mut frame = Mat::default().unwrap();
-            video_in.read(&mut frame).unwrap();
-            if frame.size().unwrap().width == 0 {
-                return Ok(Async::Ready(None));
-            }
-            Ok(Async::Ready(Some(MatData { frame: frame })))
-        },
-    );
+    let processing_stream = stream::poll_fn(move |_| -> Poll<Option<MatData>> {
+        // Read frame
+        let mut frame = Mat::default();
+        video_in.read(&mut frame).unwrap();
+        if frame.size().unwrap().width == 0 {
+            return Poll::Ready(None);
+        }
+        Poll::Ready(Some(MatData { frame }))
+    });
 
     let threads = nthreads as usize;
 
@@ -81,13 +73,14 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
                 // Out data
                 EyesData {
                     frame: in_data.frame,
-                    equalized: equalized,
-                    faces: faces,
+                    equalized,
+                    faces,
                 }
             })
         })
         .buffered(threads)
-        .map(move |mut in_data: EyesData| {
+        .map(move |in_data| {
+            let mut in_data = in_data.unwrap();
             spawn_return!({
                 let eye_xml = core::find_file("config/haarcascade_eye.xml", true, false).unwrap();
                 let mut eye_detector = objdetect::CascadeClassifier::new(&eye_xml).unwrap();
@@ -107,13 +100,14 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
             })
         })
         .buffered(threads)
-        .for_each(move |mut in_data: MatData| {
-            video_out.write(&mut in_data.frame).unwrap();
-            Ok(())
-        })
-        .map_err(|e| println!("Error = {:?}", e));
+        .for_each(move |in_data| {
+            let in_data = in_data.unwrap();
+            video_out.write(&in_data.frame).unwrap();
+            futures::future::ready(())
+        });
 
-    tokio::run(pipeline);
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    runtime.block_on(pipeline);
 
     Ok(())
 }

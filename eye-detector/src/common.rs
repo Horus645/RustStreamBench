@@ -1,8 +1,8 @@
 use opencv::{core, imgproc, objdetect, prelude::*, types};
 
 pub fn prepare_frame(frame: &Mat) -> opencv::Result<Mat> {
-    let mut gray = Mat::default()?;
-    let mut equalized = Mat::default()?;
+    let mut gray = Mat::default();
+    let mut equalized = Mat::default();
     imgproc::cvt_color(&frame, &mut gray, imgproc::COLOR_BGR2GRAY, 0)?;
     imgproc::equalize_hist(&gray, &mut equalized)?;
     Ok(equalized)

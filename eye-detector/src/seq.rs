@@ -1,7 +1,6 @@
 use opencv::{core, objdetect, prelude::*, videoio};
 
-#[path = "common.rs"]
-mod common;
+use super::common;
 
 pub fn seq_eye_tracker(input_video: &String) -> opencv::Result<()> {
     let mut video_in = videoio::VideoCapture::from_file(input_video, videoio::CAP_FFMPEG)?;
@@ -13,7 +12,7 @@ pub fn seq_eye_tracker(input_video: &String) -> opencv::Result<()> {
         video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FRAME_WIDTH as i32)? as i32,
         video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FRAME_HEIGHT as i32)? as i32,
     );
-    let fourcc = videoio::VideoWriter::fourcc('m' as i8, 'p' as i8, 'g' as i8, '1' as i8)?;
+    let fourcc = videoio::VideoWriter::fourcc('m', 'p', 'g', '1')?;
     let fps_out = video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FPS as i32)?;
     let mut video_out = videoio::VideoWriter::new("output.avi", fourcc, fps_out, frame_size, true)?;
     let out_opened = videoio::VideoWriter::is_opened(&video_out)?;
@@ -29,7 +28,7 @@ pub fn seq_eye_tracker(input_video: &String) -> opencv::Result<()> {
 
     loop {
         // Read frame
-        let mut frame = Mat::default()?;
+        let mut frame = Mat::default();
         video_in.read(&mut frame)?;
         if frame.size()?.width == 0 {
             break;
