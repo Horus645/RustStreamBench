@@ -37,7 +37,7 @@ fn main() -> Result<(), String> {
         "tokio-io" => tokio::tokio_io(threads, file_action, file_name),
         "rayon" => rayon::rayon(threads, file_action, file_name),
         "pipeliner" => pipeliner::pipeliner(threads, file_action, file_name),
-        _ => println!("Invalid run_mode '{run_mode}', use: sequential | rust-ssp | std-threads | tokio | rayon | pipeliner"),
+        _ => println!("Invalid run_mode '{run_mode}', use: sequential | rust-ssp | spar-rust | spar-rust-io | std-threads | std-threads-io | tokio | tokio-io | rayon | pipeliner"),
     }
 
     Ok(())

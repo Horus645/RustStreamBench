@@ -16,13 +16,13 @@ image-processing
 fi
 
 LOG_FILE=benchmarks/log
-REPETITIONS=$(seq 1 10)
-NTHREADS=$(seq 1 "$(nproc)")
+REPETITIONS=$(seq 1 1 | tr '\n' ' ')
+NTHREADS=$(seq 1 "$(nproc)" | tr '\n' ' ')
 CHECKSUM_ERROR_MSG="!!!ERROR!!! Checksums failed to verify:"
 
 check_and_mkdir() {
 	if [ ! -d "$1" ]; then
-		mkdir -pv "$1" | tee --apend $LOG_FILE
+		mkdir -pv "$1" | tee --append $LOG_FILE
 	fi
 }
 
@@ -39,9 +39,9 @@ build_app() {
 }
 
 verify_checksum() {
-	CORRECT_CHECKSUM=$(cat "$1")	
-	TESTING_CHECKSUM=$(md5sum "$2")	
-	
+	CORRECT_CHECKSUM=$(cat "$1")
+	TESTING_CHECKSUM=$(md5sum "$2")
+
 	if [ "$CORRECT_CHECKSUM" != "$TESTING_CHECKSUM" ]; then
 		log "
 $CHECKSUM_ERROR_MSG
@@ -49,7 +49,7 @@ $1 - $CORRECT_CHECKSUM
 $2 - $TESTING_CHECKSUM
 "
 	else
-		log "checksums match"
+		log "$1 $2 checksums match"
 	fi
 }
 
@@ -95,20 +95,26 @@ run_bzip2() {
 				log "Running bzip $RUNTIME with $T threads: $I of $REPETITIONS"
 				for INPUT in inputs/bzip2/*; do
 					INPUT_FILENAME=$(basename "$INPUT")
-					BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
+					BENCHDIR="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
+					check_and_mkdir "$BENCHDIR"
+					BENCHFILE="$BENCHDIR"/"$T"
 
+					log "writting benchmark to $BENCHFILE"
 					./bzip2/target/release/bzip2 "$RUNTIME" "$T" compress "$INPUT" >> "$BENCHFILE"
 					OUTFILE="$INPUT".bz2
-					verify_checksum "$CHECKSUMS_DIR"/"$(basename "$OUTFILE")" "$OUTFILE"
+					verify_checksum "$CHECKSUMS_DIR"/"$(basename "$OUTFILE")".checksum "$OUTFILE"
 				done
 
 				for INPUT in inputs/bzip2/*; do
 					INPUT_FILENAME=$(basename "$INPUT")
-					BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
+					BENCHDIR="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
+					check_and_mkdir "$BENCHDIR"
+					BENCHFILE="$BENCHDIR"/"$T"
 
+					log "writting benchmark to $BENCHFILE"
 					./bzip2/target/release/bzip2 "$RUNTIME" "$T" decompress "$INPUT" >> "$BENCHFILE"
 					OUTFILE=$(dirname "$INPUT")/$(basename --suffix=.bz2 "$INPUT")
-					verify_checksum "$CHECKSUMS_DIR"/"$(basename "$OUTFILE")" "$OUTFILE"
+					verify_checksum "$CHECKSUMS_DIR"/"$(basename "$OUTFILE")".checksum "$OUTFILE"
 				done
 			done
 		done
@@ -117,8 +123,10 @@ run_bzip2() {
 	log "BZIP END"
 }
 
+if  [ ! -d benchmarks ]; then
+	mkdir -pv benchmarks
+fi
 log "START"
-check_and_mkdir benchmarks
 echo >> $LOG_FILE
 for APP in $APPS; do
 	log "BENCHMARK $APP"
