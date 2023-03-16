@@ -34,7 +34,7 @@ fn main() {
         "std-threads" => par_std_threads::std_threads_eye_tracker(input_video, nthreads).unwrap(),
         "better" => par_better::better_eye_tracker(input_video, nthreads).unwrap(),
         "spar-rust" => spar_rust::spar_rust_eye_tracker(input_video, nthreads).unwrap(),
-        _ => println!("Invalid run_mode, use (seq | rust-spp | tokio)"),
+        _ => println!("Invalid run_mode, use (seq | rust-spp | tokio | std-threads | better | spar-rust)"),
     }
 
     let system_duration = start.elapsed().expect("Failed to get render time?");

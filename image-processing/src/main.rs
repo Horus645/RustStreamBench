@@ -29,7 +29,7 @@ fn main() -> std::io::Result<()> {
         "tokio" => tokio::tokio(dir_name, threads),
         "rayon" => rayon::rayon(dir_name, threads),
         "std-threads" => std_threads::std_threads(dir_name, threads),
-        _ => println!("Invalid run_mode, use: sequential | rust-ssp | std-threads | tokio | rayon | pipeliner"),
+        _ => println!("Invalid run_mode, use: sequential | rust-ssp | spar-rust | std-threads | tokio | rayon | pipeliner"),
     }
     Ok(())
 }

@@ -142,7 +142,7 @@ pub fn std_threads_pipeline(size: usize, threads: usize, iter_size1: i32, iter_s
 
     let system_duration = start.elapsed().expect("Failed to get render time?");
     let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
-    println!("Execution time STDthreads: {} sec", in_sec);
+    println!("Execution time std-threads: {in_sec} sec");
 
     let mut m = vec![];
 
@@ -150,6 +150,6 @@ pub fn std_threads_pipeline(size: usize, threads: usize, iter_size1: i32, iter_s
         m.extend(line.line_buffer);
     }
 
-    let mut buffer = File::create("result_STDthreads.txt").unwrap();
+    let mut buffer = File::create("result_std-threads.txt").unwrap();
     buffer.write_all(&m).unwrap();
 }

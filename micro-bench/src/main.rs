@@ -29,6 +29,6 @@ fn main() {
         "tokio" => tokio::tokio_pipeline(size, threads, iter_size1, iter_size2),
         "rayon" => rayon::rayon_pipeline(size, threads, iter_size1, iter_size2),
         "pipeliner" => pipeliner::pipeliner_pipeline(size, threads, iter_size1, iter_size2),
-        _ => println!("Invalid run_mode, use: sequential | rust-ssp | std-threads | tokio | rayon | pipeliner"),
+        _ => println!("Invalid run_mode, use: sequential | rust-ssp | spar-rust | std-threads | tokio | rayon | pipeliner"),
     }
 }

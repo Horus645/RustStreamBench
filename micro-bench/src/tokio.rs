@@ -133,7 +133,7 @@ pub fn tokio_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
                 let system_duration = start.elapsed().expect("Failed to get render time?");
                 let in_sec =
                     system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
-                println!("Execution time Tokio: {} sec", in_sec);
+                println!("Execution time Tokio: {in_sec} sec");
 
                 let file = File::create("result_tokio.txt").unwrap();
                 let mut writer = BufWriter::new(file);

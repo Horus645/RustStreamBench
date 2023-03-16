@@ -49,7 +49,7 @@ $1 - $CORRECT_CHECKSUM
 $2 - $TESTING_CHECKSUM
 "
 	else
-		log "$1 $2 checksums match"
+		log "$(basename "$1") $(basename "$2") MATCH"
 	fi
 }
 
@@ -57,13 +57,14 @@ run_bzip2() {
 	log "BZIP START"
 
 	build_app bzip2
-	BENCH_DIR=benchmarks/"$APP"
+	BENCH_DIR=benchmarks/bzip2
 	CHECKSUMS_DIR="$BENCH_DIR"/checksums
 	check_and_mkdir "$BENCH_DIR"
 	check_and_mkdir "$CHECKSUMS_DIR"
 
 	for I in $REPETITIONS; do
 		log "Running bzip sequential: $I of $REPETITIONS"
+		# compression
 		for INPUT in inputs/bzip2/*; do
 			INPUT_FILENAME=$(basename "$INPUT")
 			if [ ! -f "$CHECKSUMS_DIR"/"$INPUT_FILENAME".checksum ]; then
@@ -76,6 +77,7 @@ run_bzip2() {
 			./bzip2/target/release/bzip2 sequential 1 compress "$INPUT" >> "$BENCHFILE"
 		done
 
+		# decompression
 		for INPUT in inputs/bzip2/*; do
 			INPUT_FILENAME=$(basename "$INPUT")
 			if [ ! -f "$CHECKSUMS_DIR"/"$INPUT_FILENAME".checksum ]; then
@@ -93,11 +95,12 @@ run_bzip2() {
 		for I in $REPETITIONS; do
 			for T in $NTHREADS; do
 				log "Running bzip $RUNTIME with $T threads: $I of $REPETITIONS"
+
+				# compression
 				for INPUT in inputs/bzip2/*; do
 					INPUT_FILENAME=$(basename "$INPUT")
-					BENCHDIR="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
-					check_and_mkdir "$BENCHDIR"
-					BENCHFILE="$BENCHDIR"/"$T"
+					check_and_mkdir "$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
+					BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"/"$T"
 
 					log "writting benchmark to $BENCHFILE"
 					./bzip2/target/release/bzip2 "$RUNTIME" "$T" compress "$INPUT" >> "$BENCHFILE"
@@ -105,11 +108,11 @@ run_bzip2() {
 					verify_checksum "$CHECKSUMS_DIR"/"$(basename "$OUTFILE")".checksum "$OUTFILE"
 				done
 
+				# decompression
 				for INPUT in inputs/bzip2/*; do
 					INPUT_FILENAME=$(basename "$INPUT")
-					BENCHDIR="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
-					check_and_mkdir "$BENCHDIR"
-					BENCHFILE="$BENCHDIR"/"$T"
+					check_and_mkdir "$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
+					BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"/"$T"
 
 					log "writting benchmark to $BENCHFILE"
 					./bzip2/target/release/bzip2 "$RUNTIME" "$T" decompress "$INPUT" >> "$BENCHFILE"
@@ -123,9 +126,131 @@ run_bzip2() {
 	log "BZIP END"
 }
 
+run_micro_bench() {
+	log "MICRO-BENCH START"
+
+	MD=2048
+	ITER1=3000
+	ITER2=2000
+	INPUT="${MD}-${ITER1}-${ITER2}"
+
+	build_app micro-bench
+	BENCH_DIR=benchmarks/micro-bench
+	CHECKSUMS_DIR="$BENCH_DIR"/checksums
+	CHECKSUMS_FILE="$CHECKSUMS_DIR"/"$INPUT".checksum
+	check_and_mkdir "$BENCH_DIR"
+	check_and_mkdir "$CHECKSUMS_DIR"
+
+	for I in $REPETITIONS; do
+		log "Running micro-bench sequential: $I of $REPETITIONS"
+		check_and_mkdir "$BENCH_DIR"/"$INPUT"
+		BENCHFILE="$BENCH_DIR"/"$INPUT"/sequential
+		./micro-bench/target/release/micro-bench sequential $MD 1 $ITER1 $ITER2 "$INPUT" >> "$BENCHFILE"
+
+		OUTFILE=result_sequential.txt
+		if [ ! -f "$CHECKSUMS_FILE" ]; then
+			log "Creating checksum for $INPUT"
+			md5sum "$OUTFILE" > "$CHECKSUMS_FILE"
+		fi
+		verify_checksum "$CHECKSUMS_FILE" "$OUTFILE"
+	done
+
+	for RUNTIME in rust-ssp spar-rust std-threads tokio rayon pipeliner; do
+		OUTFILE=result_"$RUNTIME".txt
+		for I in $REPETITIONS; do
+			for T in $NTHREADS; do
+				log "Running micro-bench $RUNTIME with $T threads: $I of $REPETITIONS"
+
+				check_and_mkdir "$BENCH_DIR"/"$INPUT"/"$RUNTIME"
+				BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"/"$T"
+				./micro-bench/target/release/micro-bench "$RUNTIME" $MD "$T" $ITER1 $ITER2 "$INPUT" >> "$BENCHFILE"
+				verify_checksum "$CHECKSUMS_FILE" "$OUTFILE"
+			done
+		done
+	done
+
+	log "MICRO-BENCH END"
+}
+
+run_image_processing_bench() {
+	log "IMAGE-PROCESSING START"
+	BENCH_DIR=benchmarks/image-processing
+	check_and_mkdir "$BENCH_DIR"
+
+	for I in $REPETITIONS; do
+		log "Running image-processing sequential: $I of $REPETITIONS"
+		for INPUT in ./inputs/image-processing/*; do
+			check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"
+			BENCHFILE="$BENCH_DIR"/"$INPUT"/sequential
+			./image-processing/target/release/image-processing sequential 1 "$INPUT" > "$BENCHFILE"
+		done
+	done
+
+	for RUNTIME in rust-ssp spar-rust std-threads tokio rayon pipeliner; do
+		for I in $REPETITIONS; do
+			for T in $NTHREADS; do
+				log "Running image-processing $RUNTIME with $T threads: $I of $REPETITIONS"
+				for INPUT in ./inputs/image-processing/*; do
+					check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"
+					BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"/"$T"
+					./image-processing/target/release/image-processing "$RUNTIME" "$T" "$INPUT" > "$BENCHFILE"
+				done
+			done
+		done
+	done
+
+	log "IMAGE-PROCESSING END"
+}
+
+run_eye_detector_bench() {
+	log "EYE-DETECTOR START"
+
+	BENCH_DIR=benchmarks/eye-detector
+	CHECKSUMS_DIR="$BENCH_DIR"/checksums
+
+	check_and_mkdir "$BENCH_DIR"
+	check_and_mkdir "$CHECKSUMS_DIR"
+
+	OUTFILE="output.avi"
+
+	for I in $REPETITIONS; do
+		log "Running eye-detector sequential: $I of $REPETITIONS"
+		for INPUT in ./inputs/eye-detector/*.mp4; do
+			check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"
+			CHECKSUMS_FILE="$CHECKSUMS_DIR/$INPUT".checksum
+			BENCHFILE="$BENCH_DIR"/"$INPUT"/sequential
+			./eye-detector/target/release/eye-detector seq 1 "$INPUT" > "$BENCHFILE"
+
+			if [ ! -f "$CHECKSUMS_FILE" ]; then
+				log "Creating checksum for $INPUT"
+				md5sum "$OUTFILE" > "$CHECKSUMS_FILE"
+			fi
+			verify_checksum "$CHECKSUMS_FILE" $OUTFILE
+		done
+	done
+
+	for RUNTIME in rust-ssp spar-rust std-threads tokio better; do
+		for I in $REPETITIONS; do
+			for T in $NTHREADS; do
+				log "Running eye-detector $RUNTIME with $T threads: $I of $REPETITIONS"
+				for INPUT in ./inputs/eye-detector/*.mp4; do
+					check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"
+					CHECKSUMS_FILE="$CHECKSUMS_DIR/$INPUT".checksum
+					BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"/"$T"
+					./eye-detector/target/release/eye-detector "$RUNTIME" "$T" "$INPUT" > "$BENCHFILE"
+					verify_checksum "$CHECKSUMS_FILE" $OUTFILE
+				done
+			done
+		done
+	done
+
+	log "EYE-DETECTOR END"
+}
+
 if  [ ! -d benchmarks ]; then
 	mkdir -pv benchmarks
 fi
+
 log "START"
 echo >> $LOG_FILE
 for APP in $APPS; do
@@ -133,6 +258,9 @@ for APP in $APPS; do
 
 	case "$APP" in
 		bzip2) run_bzip2 ;;
+		micro-bench) run_micro_bench ;;
+		image-processing) run_image_processing_bench ;;
+		eye-detector) run_eye_detector_bench ;;
 		*)
 			log "ERROR: ${APP}'s execution has not been implemented"
 			exit 1
