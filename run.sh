@@ -184,7 +184,7 @@ run_image_processing_bench() {
 	for I in $REPETITIONS; do
 		log "Running image-processing sequential: $I"
 		for INPUT in ./inputs/image-processing/*; do
-			check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"
+			check_and_mkdir "$BENCH_DIR"/"$INPUT"
 			BENCHFILE="$BENCH_DIR"/"$INPUT"/sequential
 			./image-processing/target/release/image-processing sequential 1 "$INPUT" > "$BENCHFILE"
 		done
@@ -195,7 +195,7 @@ run_image_processing_bench() {
 			for T in $NTHREADS; do
 				log "Running image-processing $RUNTIME with $T threads: $I"
 				for INPUT in ./inputs/image-processing/*; do
-					check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"
+					check_and_mkdir "$BENCH_DIR"/"$INPUT"/"$RUNTIME"
 					BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"/"$T"
 					./image-processing/target/release/image-processing "$RUNTIME" "$T" "$INPUT" > "$BENCHFILE"
 				done
