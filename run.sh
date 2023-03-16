@@ -128,13 +128,13 @@ run_bzip2() {
 
 run_micro_bench() {
 	log "MICRO-BENCH START"
+	build_app micro-bench
 
 	MD=2048
 	ITER1=3000
 	ITER2=2000
 	INPUT="${MD}-${ITER1}-${ITER2}"
 
-	build_app micro-bench
 	BENCH_DIR=benchmarks/micro-bench
 	CHECKSUMS_DIR="$BENCH_DIR"/checksums
 	CHECKSUMS_FILE="$CHECKSUMS_DIR"/"$INPUT".checksum
@@ -176,6 +176,8 @@ run_micro_bench() {
 
 run_image_processing_bench() {
 	log "IMAGE-PROCESSING START"
+	build_app image-processing
+
 	BENCH_DIR=benchmarks/image-processing
 	check_and_mkdir "$BENCH_DIR"
 
@@ -206,6 +208,7 @@ run_image_processing_bench() {
 
 run_eye_detector_bench() {
 	log "EYE-DETECTOR START"
+	build_app eye-detector
 
 	BENCH_DIR=benchmarks/eye-detector
 	CHECKSUMS_DIR="$BENCH_DIR"/checksums
