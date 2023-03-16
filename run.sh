@@ -63,7 +63,7 @@ run_bzip2() {
 	check_and_mkdir "$CHECKSUMS_DIR"
 
 	for I in $REPETITIONS; do
-		log "Running bzip sequential: $I of $REPETITIONS"
+		log "Running bzip sequential: $I"
 		# compression
 		for INPUT in inputs/bzip2/*; do
 			INPUT_FILENAME=$(basename "$INPUT")
@@ -94,7 +94,7 @@ run_bzip2() {
 	for RUNTIME in rust-ssp spar-rust spar-rust-io std-threads std-threads-io tokio tokio-io rayon pipeliner; do
 		for I in $REPETITIONS; do
 			for T in $NTHREADS; do
-				log "Running bzip $RUNTIME with $T threads: $I of $REPETITIONS"
+				log "Running bzip $RUNTIME with $T threads: $I"
 
 				# compression
 				for INPUT in inputs/bzip2/*; do
@@ -142,7 +142,7 @@ run_micro_bench() {
 	check_and_mkdir "$CHECKSUMS_DIR"
 
 	for I in $REPETITIONS; do
-		log "Running micro-bench sequential: $I of $REPETITIONS"
+		log "Running micro-bench sequential: $I"
 		check_and_mkdir "$BENCH_DIR"/"$INPUT"
 		BENCHFILE="$BENCH_DIR"/"$INPUT"/sequential
 		./micro-bench/target/release/micro-bench sequential $MD 1 $ITER1 $ITER2 "$INPUT" >> "$BENCHFILE"
@@ -159,7 +159,7 @@ run_micro_bench() {
 		OUTFILE=result_"$RUNTIME".txt
 		for I in $REPETITIONS; do
 			for T in $NTHREADS; do
-				log "Running micro-bench $RUNTIME with $T threads: $I of $REPETITIONS"
+				log "Running micro-bench $RUNTIME with $T threads: $I"
 
 				check_and_mkdir "$BENCH_DIR"/"$INPUT"/"$RUNTIME"
 				BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"/"$T"
@@ -178,7 +178,7 @@ run_image_processing_bench() {
 	check_and_mkdir "$BENCH_DIR"
 
 	for I in $REPETITIONS; do
-		log "Running image-processing sequential: $I of $REPETITIONS"
+		log "Running image-processing sequential: $I"
 		for INPUT in ./inputs/image-processing/*; do
 			check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"
 			BENCHFILE="$BENCH_DIR"/"$INPUT"/sequential
@@ -189,7 +189,7 @@ run_image_processing_bench() {
 	for RUNTIME in rust-ssp spar-rust std-threads tokio rayon pipeliner; do
 		for I in $REPETITIONS; do
 			for T in $NTHREADS; do
-				log "Running image-processing $RUNTIME with $T threads: $I of $REPETITIONS"
+				log "Running image-processing $RUNTIME with $T threads: $I"
 				for INPUT in ./inputs/image-processing/*; do
 					check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"
 					BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"/"$T"
@@ -214,7 +214,7 @@ run_eye_detector_bench() {
 	OUTFILE="output.avi"
 
 	for I in $REPETITIONS; do
-		log "Running eye-detector sequential: $I of $REPETITIONS"
+		log "Running eye-detector sequential: $I"
 		for INPUT in ./inputs/eye-detector/*.mp4; do
 			check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"
 			CHECKSUMS_FILE="$CHECKSUMS_DIR/$INPUT".checksum
@@ -232,7 +232,7 @@ run_eye_detector_bench() {
 	for RUNTIME in rust-ssp spar-rust std-threads tokio better; do
 		for I in $REPETITIONS; do
 			for T in $NTHREADS; do
-				log "Running eye-detector $RUNTIME with $T threads: $I of $REPETITIONS"
+				log "Running eye-detector $RUNTIME with $T threads: $I"
 				for INPUT in ./inputs/eye-detector/*.mp4; do
 					check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"
 					CHECKSUMS_FILE="$CHECKSUMS_DIR/$INPUT".checksum
