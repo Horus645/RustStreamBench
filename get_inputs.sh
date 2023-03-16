@@ -1,12 +1,24 @@
 #!/bin/sh
+#
+# Usage:
+#
+# ./get_inputs.sh # to get inputs for all applications
+# ./get_inputs.sh <application name> # to get inputs for a specific application
 
 set -e
 
-APPS="
+if [ $# -gt 0 ]; then
+	for arg in "$@"; do
+		APPS="$APPS $arg"
+	done
+else
+	APPS="
 bzip2
 eye-detector
 image-processing
 "
+fi
+
 # note micro bench does not have inputs
 
 if [ ! -d inputs ]; then
@@ -58,6 +70,8 @@ for APP in $APPS; do
 			;;
 		*)
 			echo "ERROR: input for application $APP has not been implemented"
+			cd ../..
+			rm -rvf inputs/"$APP"
 			exit 1
 			;;
 	esac
