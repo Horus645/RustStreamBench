@@ -5,7 +5,7 @@ use std::{fs::File, io::BufWriter};
 
 use crossbeam_channel::unbounded;
 use {
-    futures::{future::lazy, io::AllowStdIo, stream, task::Poll, StreamExt},
+    futures::{future::lazy, stream, task::Poll, StreamExt},
     tokio::sync::oneshot,
 };
 
@@ -248,7 +248,7 @@ pub fn tokio_io(threads: usize, file_action: &str, file_name: &str) {
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
         let outfile = File::create(compressed_file_name).unwrap();
-        let mut buf_write = BufWriter::new(AllowStdIo::new(outfile));
+        let mut buf_write = BufWriter::new(outfile);
 
         // initialization
         let block_size = super::BLOCK_SIZE;

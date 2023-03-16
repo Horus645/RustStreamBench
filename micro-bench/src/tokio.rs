@@ -1,12 +1,10 @@
-use std::fs::File;
 use std::io::Write;
 use std::time::SystemTime;
+use std::{fs::File, io::BufWriter};
 
 use {
-    futures::future::lazy,
-    futures::sync::*,
-    futures::{stream, Future, Stream},
-    tokio::prelude::*,
+    futures::{future::lazy, stream, task::Poll, StreamExt},
+    tokio::sync::oneshot,
 };
 
 struct Tcontent {
@@ -21,10 +19,9 @@ struct Tcontent {
 macro_rules! spawn_return {
     ($block:expr) => {{
         let (sender, receiver) = oneshot::channel::<_>();
-        tokio::spawn(lazy(move || {
+        tokio::spawn(lazy(move |_| {
             let result = $block;
             sender.send(result).ok();
-            Ok(())
         }));
         receiver
     }};
@@ -39,26 +36,24 @@ pub fn tokio_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
 
     let start = SystemTime::now();
 
-    let processing_stream = stream::poll_fn(
-        move || -> Poll<Option<Tcontent>, futures::sync::oneshot::Canceled> {
-            if !jumper {
-                i += 1;
-            } else {
-                jumper = false;
-            }
-            if i >= size {
-                return Ok(Async::Ready(None));
-            }
-            Ok(Async::Ready(Some(Tcontent {
-                size,
-                line: i as i64,
-                line_buffer: vec![0; size],
-                a_buffer: vec![0.0; size],
-                b_buffer: vec![0.0; size],
-                k_buffer: vec![0; size],
-            })))
-        },
-    );
+    let processing_stream = stream::poll_fn(move |_| -> Poll<Option<Tcontent>> {
+        if !jumper {
+            i += 1;
+        } else {
+            jumper = false;
+        }
+        if i >= size {
+            return Poll::Ready(None);
+        }
+        Poll::Ready(Some(Tcontent {
+            size,
+            line: i as i64,
+            line_buffer: vec![0; size],
+            a_buffer: vec![0.0; size],
+            b_buffer: vec![0.0; size],
+            k_buffer: vec![0; size],
+        }))
+    });
 
     let collection = processing_stream
         .map(move |mut content: Tcontent| {
@@ -96,7 +91,8 @@ pub fn tokio_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             })
         })
         .buffered(threads)
-        .map(move |mut content: Tcontent| {
+        .map(move |content| {
+            let mut content: Tcontent = content.unwrap();
             spawn_return!({
                 let init_a = -2.125;
                 let init_b = -1.5;
@@ -129,7 +125,8 @@ pub fn tokio_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             })
         })
         .buffered(threads)
-        .for_each(move |content: Tcontent| {
+        .for_each(move |content| {
+            let content = content.unwrap();
             m.extend(content.line_buffer);
             counter += 1;
             if counter == size {
@@ -138,12 +135,13 @@ pub fn tokio_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
                     system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
                 println!("Execution time Tokio: {} sec", in_sec);
 
-                let mut buffer = File::create("result_tokio.txt").unwrap();
-                buffer.write_all(&m).unwrap();
+                let file = File::create("result_tokio.txt").unwrap();
+                let mut writer = BufWriter::new(file);
+                writer.write_all(&m).unwrap();
             }
-            Ok(())
-        })
-        .map_err(|e| println!("Error = {:?}", e));
+            futures::future::ready(())
+        });
 
-    tokio::run(collection);
+    let runtime = tokio::runtime::Runtime::new().unwrap();
+    runtime.block_on(collection);
 }
