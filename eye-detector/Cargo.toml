@@ -11,7 +11,7 @@ readme = "README.md"
 
 [dependencies]
 # Core
-opencv = { version = "0.78" }
+opencv = { version = "0.70" }
 
 # Rust-SSP
 rust-spp = { path = "../libs/rust-ssp" }

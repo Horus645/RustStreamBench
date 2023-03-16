@@ -208,6 +208,7 @@ run_image_processing_bench() {
 
 run_eye_detector_bench() {
 	log "EYE-DETECTOR START"
+	. ./eye-detector/config_opencv_vars.sh
 	build_app eye-detector
 
 	BENCH_DIR=benchmarks/eye-detector
