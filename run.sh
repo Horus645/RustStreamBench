@@ -39,8 +39,8 @@ build_app() {
 }
 
 verify_checksum() {
-	CORRECT_CHECKSUM=$(cat "$1")
-	TESTING_CHECKSUM=$(md5sum "$2")
+	CORRECT_CHECKSUM=$(awk '{print $1}' "$1")
+	TESTING_CHECKSUM=$(md5sum "$2" | awk '{print $1}')
 
 	if [ "$CORRECT_CHECKSUM" != "$TESTING_CHECKSUM" ]; then
 		log "
@@ -153,6 +153,7 @@ run_micro_bench() {
 			md5sum "$OUTFILE" > "$CHECKSUMS_FILE"
 		fi
 		verify_checksum "$CHECKSUMS_FILE" "$OUTFILE"
+		rm "$OUTFILE"
 	done
 
 	for RUNTIME in rust-ssp spar-rust std-threads tokio rayon pipeliner; do
@@ -165,6 +166,7 @@ run_micro_bench() {
 				BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"/"$T"
 				./micro-bench/target/release/micro-bench "$RUNTIME" $MD "$T" $ITER1 $ITER2 "$INPUT" >> "$BENCHFILE"
 				verify_checksum "$CHECKSUMS_FILE" "$OUTFILE"
+				rm "$OUTFILE"
 			done
 		done
 	done
@@ -216,13 +218,14 @@ run_eye_detector_bench() {
 	for I in $REPETITIONS; do
 		log "Running eye-detector sequential: $I"
 		for INPUT in ./inputs/eye-detector/*.mp4; do
-			check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"
-			CHECKSUMS_FILE="$CHECKSUMS_DIR/$INPUT".checksum
-			BENCHFILE="$BENCH_DIR"/"$INPUT"/sequential
+			INPUT_FILENAME="$(basename "$INPUT")"
+			check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"
+			CHECKSUMS_FILE="$CHECKSUMS_DIR"/"$INPUT_FILENAME".checksum
+			BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/sequential
 			./eye-detector/target/release/eye-detector seq 1 "$INPUT" > "$BENCHFILE"
 
 			if [ ! -f "$CHECKSUMS_FILE" ]; then
-				log "Creating checksum for $INPUT"
+				log "Creating checksum for $INPUT_FILENAME"
 				md5sum "$OUTFILE" > "$CHECKSUMS_FILE"
 			fi
 			verify_checksum "$CHECKSUMS_FILE" $OUTFILE
@@ -234,9 +237,10 @@ run_eye_detector_bench() {
 			for T in $NTHREADS; do
 				log "Running eye-detector $RUNTIME with $T threads: $I"
 				for INPUT in ./inputs/eye-detector/*.mp4; do
-					check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"
-					CHECKSUMS_FILE="$CHECKSUMS_DIR/$INPUT".checksum
-					BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"/"$T"
+					INPUT_FILENAME="$(basename "$INPUT")"
+					check_and_mkdir BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
+					CHECKSUMS_FILE="$CHECKSUMS_DIR"/"$INPUT_FILENAME".checksum
+					BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"/"$T"
 					./eye-detector/target/release/eye-detector "$RUNTIME" "$T" "$INPUT" > "$BENCHFILE"
 					verify_checksum "$CHECKSUMS_FILE" $OUTFILE
 				done
@@ -259,8 +263,8 @@ for APP in $APPS; do
 	case "$APP" in
 		bzip2) run_bzip2 ;;
 		micro-bench) run_micro_bench ;;
-		image-processing) run_image_processing_bench ;;
 		eye-detector) run_eye_detector_bench ;;
+		image-processing) run_image_processing_bench ;;
 		*)
 			log "ERROR: ${APP}'s execution has not been implemented"
 			exit 1
