@@ -48,6 +48,8 @@ $CHECKSUM_ERROR_MSG
 $1 - $CORRECT_CHECKSUM
 $2 - $TESTING_CHECKSUM
 "
+	else
+		log "checksums match"
 	fi
 }
 
@@ -55,9 +57,9 @@ run_bzip2() {
 	log "BZIP START"
 
 	build_app bzip2
-	OUT_DIR=benchmarks/"$APP"
-	CHECKSUMS_DIR="$OUT_DIR"/checksums
-	check_and_mkdir "$OUT_DIR"
+	BENCH_DIR=benchmarks/"$APP"
+	CHECKSUMS_DIR="$BENCH_DIR"/checksums
+	check_and_mkdir "$BENCH_DIR"
 	check_and_mkdir "$CHECKSUMS_DIR"
 
 	for I in $REPETITIONS; do
@@ -69,9 +71,9 @@ run_bzip2() {
 				md5sum "$INPUT" > "$CHECKSUMS_DIR"/"$INPUT_FILENAME".checksum
 			fi
 
-			check_and_mkdir "$OUT_DIR"/"$INPUT_FILENAME"
-			OUTFILE="$OUT_DIR"/"$INPUT_FILENAME"/sequential
-			./bzip2/target/release/bzip2 sequential 1 compress "$INPUT" >> "$OUTFILE"
+			check_and_mkdir "$BENCH_DIR"/"$INPUT_FILENAME"
+			BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/sequential
+			./bzip2/target/release/bzip2 sequential 1 compress "$INPUT" >> "$BENCHFILE"
 		done
 
 		for INPUT in inputs/bzip2/*; do
@@ -81,9 +83,9 @@ run_bzip2() {
 				md5sum "$INPUT" > "$CHECKSUMS_DIR"/"$INPUT_FILENAME".checksum
 			fi
 
-			check_and_mkdir "$OUT_DIR"/"$INPUT_FILENAME"
-			OUTFILE="$OUT_DIR"/"$INPUT_FILENAME"/sequential
-			./bzip2/target/release/bzip2 sequential 1 decompress "$INPUT" >> "$OUTFILE"
+			check_and_mkdir "$BENCH_DIR"/"$INPUT_FILENAME"
+			BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/sequential
+			./bzip2/target/release/bzip2 sequential 1 decompress "$INPUT" >> "$BENCHFILE"
 		done
 	done
 
@@ -93,16 +95,20 @@ run_bzip2() {
 				log "Running bzip $RUNTIME with $T threads: $I of $REPETITIONS"
 				for INPUT in inputs/bzip2/*; do
 					INPUT_FILENAME=$(basename "$INPUT")
-					OUTFILE="$OUT_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
+					BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
 
-					./bzip2/target/release/bzip2 "$RUNTIME" "$T" compress "$INPUT" >> "$OUTFILE"
+					./bzip2/target/release/bzip2 "$RUNTIME" "$T" compress "$INPUT" >> "$BENCHFILE"
+					OUTFILE="$INPUT".bz2
+					verify_checksum "$CHECKSUMS_DIR"/"$(basename "$OUTFILE")" "$OUTFILE"
 				done
 
 				for INPUT in inputs/bzip2/*; do
 					INPUT_FILENAME=$(basename "$INPUT")
-					OUTFILE="$OUT_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
+					BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
 
-					./bzip2/target/release/bzip2 "$RUNTIME" "$T" decompress "$INPUT" >> "$OUTFILE"
+					./bzip2/target/release/bzip2 "$RUNTIME" "$T" decompress "$INPUT" >> "$BENCHFILE"
+					OUTFILE=$(dirname "$INPUT")/$(basename --suffix=.bz2 "$INPUT")
+					verify_checksum "$CHECKSUMS_DIR"/"$(basename "$OUTFILE")" "$OUTFILE"
 				done
 			done
 		done
