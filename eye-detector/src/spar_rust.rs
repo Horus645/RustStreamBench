@@ -21,7 +21,7 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
     let mut video_in = videoio::VideoCapture::from_file(input_video, videoio::CAP_FFMPEG)?;
     let in_opened = videoio::VideoCapture::is_opened(&video_in)?;
     if !in_opened {
-        panic!("Unable to open input video {:?}!", input_video);
+        panic!("Unable to open input video {input_video}!");
     }
     let frame_size = core::Size::new(
         video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FRAME_WIDTH as i32)? as i32,
@@ -36,10 +36,10 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
     }
 
     //"haarcascade_frontalface_alt.xml".to_owned()
-    let face_xml = core::find_file("config/haarcascade_frontalface_alt.xml", true, false)?;
-    let eye_xml = core::find_file("config/haarcascade_eye.xml", true, false)?;
+    let face_xml = core::find_file(unsafe { &super::FACE_XML_STR }, true, false)?;
+    let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false)?;
 
-    let mut out: Vec<MatData> = Vec::new();
+    let out: Vec<MatData> = Vec::new();
     to_stream!(
         INPUT(face_xml: String, eye_xml: String, out: Vec<MatData>),
         {
@@ -71,7 +71,7 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
                     REPLICATE = nthreads,
                     {
                         let mut face_detector =
-                            objdetect::CascadeClassifier::new(&face_xml).unwrap();
+                            objdetect::CascadeClassifier::new(face_xml).unwrap();
                         let faces =
                             common::detect_faces(&equalized.frame, &mut face_detector).unwrap();
                         let eyes_data = EyesData {
@@ -88,7 +88,7 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
                     REPLICATE = nthreads,
                     {
                         let mut eyes_detector =
-                            objdetect::CascadeClassifier::new(&eye_xml).unwrap();
+                            objdetect::CascadeClassifier::new(eye_xml).unwrap();
                         let EyesData {
                             mut frame,
                             equalized,
@@ -113,8 +113,8 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
         }
     );
 
-    for mut frame in out {
-        video_out.write(&mut frame.frame).unwrap();
+    for frame in out {
+        video_out.write(&frame.frame).unwrap();
     }
     Ok(())
 }

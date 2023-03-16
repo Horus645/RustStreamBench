@@ -32,7 +32,7 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
     let mut video_in = videoio::VideoCapture::from_file(input_video, videoio::CAP_FFMPEG)?;
     let in_opened = videoio::VideoCapture::is_opened(&video_in)?;
     if !in_opened {
-        panic!("Unable to open input video {:?}!", input_video);
+        panic!("Unable to open input video {input_video}!");
     }
     let frame_size = core::Size::new(
         video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FRAME_WIDTH as i32)? as i32,
@@ -63,7 +63,7 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
         .map(move |in_data: MatData| {
             spawn_return!({
                 let face_xml =
-                    core::find_file("config/haarcascade_frontalface_alt.xml", true, false).unwrap();
+                    core::find_file(unsafe { &super::FACE_XML_STR }, true, false).unwrap();
                 let mut face_detector = objdetect::CascadeClassifier::new(&face_xml).unwrap();
 
                 let equalized = common::prepare_frame(&in_data.frame).unwrap();
@@ -82,7 +82,7 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
         .map(move |in_data| {
             let mut in_data = in_data.unwrap();
             spawn_return!({
-                let eye_xml = core::find_file("config/haarcascade_eye.xml", true, false).unwrap();
+                let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false).unwrap();
                 let mut eye_detector = objdetect::CascadeClassifier::new(&eye_xml).unwrap();
 
                 for face in in_data.faces {

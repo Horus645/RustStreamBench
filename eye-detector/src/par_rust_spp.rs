@@ -24,8 +24,7 @@ struct DetectFaces {
 }
 impl DetectFaces {
     fn new() -> DetectFaces {
-        let face_xml =
-            core::find_file("config/haarcascade_frontalface_alt.xml", true, false).unwrap();
+        let face_xml = core::find_file(unsafe { &super::FACE_XML_STR }, true, false).unwrap();
         let face_detector = objdetect::CascadeClassifier::new(&face_xml).unwrap();
         DetectFaces { face_detector }
     }
@@ -52,7 +51,7 @@ struct DetectEyes {
 }
 impl DetectEyes {
     fn new() -> DetectEyes {
-        let eye_xml = core::find_file("config/haarcascade_eye.xml", true, false).unwrap();
+        let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false).unwrap();
         let eye_detector = objdetect::CascadeClassifier::new(&eye_xml).unwrap();
         DetectEyes { eye_detector }
     }
@@ -92,9 +91,9 @@ impl WriteOutput {
     }
 }
 impl In<MatData> for WriteOutput {
-    fn process(&mut self, mut in_data: MatData, _order: u64) {
+    fn process(&mut self, in_data: MatData, _order: u64) {
         //Write output frame
-        self.video_out.write(&mut in_data.frame).unwrap();
+        self.video_out.write(&in_data.frame).unwrap();
     }
 }
 
@@ -102,7 +101,7 @@ pub fn rust_spp_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Resu
     let mut video_in = videoio::VideoCapture::from_file(input_video, videoio::CAP_FFMPEG)?;
     let in_opened = videoio::VideoCapture::is_opened(&video_in)?;
     if !in_opened {
-        panic!("Unable to open input video {:?}!", input_video);
+        panic!("Unable to open input video {input_video}!");
     }
     let frame_size = core::Size::new(
         video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FRAME_WIDTH as i32)? as i32,

@@ -6,7 +6,7 @@ pub fn seq_eye_tracker(input_video: &String) -> opencv::Result<()> {
     let mut video_in = videoio::VideoCapture::from_file(input_video, videoio::CAP_FFMPEG)?;
     let in_opened = videoio::VideoCapture::is_opened(&video_in)?;
     if !in_opened {
-        panic!("Unable to open input video {:?}!", input_video);
+        panic!("Unable to open input video {input_video}!");
     }
     let frame_size = core::Size::new(
         video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FRAME_WIDTH as i32)? as i32,
@@ -20,9 +20,8 @@ pub fn seq_eye_tracker(input_video: &String) -> opencv::Result<()> {
         panic!("Unable to open output video output.avi!");
     }
 
-    //"haarcascade_frontalface_alt.xml".to_owned()
-    let face_xml = core::find_file("config/haarcascade_frontalface_alt.xml", true, false)?;
-    let eye_xml = core::find_file("config/haarcascade_eye.xml", true, false)?;
+    let face_xml = core::find_file(unsafe { &super::FACE_XML_STR }, true, false)?;
+    let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false)?;
     let mut face_detector = objdetect::CascadeClassifier::new(&face_xml)?;
     let mut eyes_detector = objdetect::CascadeClassifier::new(&eye_xml)?;
 
@@ -46,7 +45,7 @@ pub fn seq_eye_tracker(input_video: &String) -> opencv::Result<()> {
             common::draw_in_frame(&mut frame, &eyes, &face)?;
         }
         //Write output frame
-        video_out.write(&mut frame)?;
+        video_out.write(&frame)?;
     }
     Ok(())
 }

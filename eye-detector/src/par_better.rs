@@ -39,13 +39,13 @@ impl Reorder {
         if self.storage.contains_key(&order) {
             let removed_item = self.storage.remove(&order);
             match removed_item {
-                Some(value) => return Some(value),
+                Some(value) => Some(value),
                 None => {
                     panic!("Ordered removal failed")
                 }
             }
         } else {
-            return None;
+            None
         }
     }
 }
@@ -119,7 +119,7 @@ impl BetterCrossbeam {
 
                 self.send(sender, t_id, err.into_inner());
             } else {
-                panic!("Error: {:?}!", err);
+                panic!("Error: {err}!");
             }
         }
 
@@ -167,7 +167,7 @@ impl BetterCrossbeam {
                 }
 
                 Err(e) if e == TryRecvError::Disconnected => return None,
-                Err(e) => panic!("Error during recv {}", e),
+                Err(e) => panic!("Error during recv {e}"),
             }
         }
     }
@@ -187,7 +187,7 @@ pub fn better_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result
     let mut video_in = videoio::VideoCapture::from_file(input_video, videoio::CAP_FFMPEG).unwrap();
     let in_opened = videoio::VideoCapture::is_opened(&video_in).unwrap();
     if !in_opened {
-        panic!("Unable to open input video {:?}!", input_video);
+        panic!("Unable to open input video {input_video}!");
     }
     let frame_size = core::Size::new(
         video_in
@@ -249,7 +249,7 @@ pub fn better_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result
                     None => break,
                 };
                 let face_xml =
-                    core::find_file("config/haarcascade_frontalface_alt.xml", true, false).unwrap();
+                    core::find_file(unsafe { &super::FACE_XML_STR }, true, false).unwrap();
                 let mut face_detector = objdetect::CascadeClassifier::new(&face_xml).unwrap();
 
                 let equalized = common::prepare_frame(&content.frame).unwrap();
@@ -291,12 +291,12 @@ pub fn better_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result
                     Some(ref x) => x,
                     None => panic!("Empty value inside stream!"),
                 };
-                let eye_xml = core::find_file("config/haarcascade_eye.xml", true, false).unwrap();
+                let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false).unwrap();
                 let mut eye_detector = objdetect::CascadeClassifier::new(&eye_xml).unwrap();
 
                 for face in faces {
                     let eyes = common::detect_eyes(
-                        &core::Mat::roi(&equalized, face).unwrap(),
+                        &core::Mat::roi(equalized, face).unwrap(),
                         &mut eye_detector,
                     )
                     .unwrap();
@@ -312,8 +312,8 @@ pub fn better_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result
     }
     drop(queue3_send);
 
-    let in_queue = queue3.clone();
-    let local_recv = queue3_recv.clone();
+    let in_queue = queue3;
+    let local_recv = queue3_recv;
     // Sequential reordering thread
     let stage4_thread = thread::spawn(move || {
         in_queue.set_rcv_handle(0, thread::current());
@@ -331,7 +331,7 @@ pub fn better_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result
                 }
 
                 // Write
-                video_out.write(&mut content.frame).unwrap();
+                video_out.write(&content.frame).unwrap();
 
                 expected_ordered += 1;
                 let removed_item = reorder_engine.remove(expected_ordered);
