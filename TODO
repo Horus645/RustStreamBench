@@ -1,0 +1,3 @@
+RUN bzip rust-ssp-io
+
+RERUN micro-bench spar-rust (remove m.clone()).

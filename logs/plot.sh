@@ -149,7 +149,7 @@ LW=2
 $LINE_FORMTS
 set logscale y 2
 set key outside top horizontal nobox font '$FONT_TYPE,$FONT_SIZE'
-set title '${APP}-${INPUT}-(Time)' offset -2,0,1 noenhanced
+set title '${APP}-${INPUT}(Time)' offset -2,0,1 noenhanced
 
 set ylabel "Seconds" offset 2,1,1
 set xtics 2
