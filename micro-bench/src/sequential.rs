@@ -39,7 +39,7 @@ pub fn sequential(size: usize, iter_size1: i32, iter_size2: i32) {
 
     let system_duration = start.elapsed().expect("Failed to get render time?");
     let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
-    println!("Execution time: {in_sec} sec");
+    println!("Execution time sequential: {in_sec} sec");
 
     let mut buffer = File::create("result_sequential.txt").unwrap();
     buffer.write_all(&m).unwrap();

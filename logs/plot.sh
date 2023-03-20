@@ -11,8 +11,11 @@ Error: Please, enter correct arguments as follows:
 <Filter> is used to filter the logs
 <Filter column> is the column that will contain the data.
 
-For bzip2, micro-bench, eye-detector and image-processing, <Filter> is
-'^Execution time' and <Filter column> is 3
+    For bzip2, micro-bench, eye-detector and image-processing, <Filter> is
+        '^Execution time'
+    For bzip2, eye-detector and image-processing, <Filter column> is '3'
+	For micro-bench, <Filter column> is '4'
+
 For Bzip2, <Filter> is 'Wall' and <Filter column> is 3
 EOF
 	exit 1
