@@ -91,7 +91,7 @@ run_bzip2() {
 		done
 	done
 
-	for RUNTIME in rust-ssp spar-rust spar-rust-io std-threads std-threads-io tokio tokio-io rayon pipeliner; do
+	for RUNTIME in rust-ssp rust-spp-io spar-rust spar-rust-io std-threads std-threads-io tokio tokio-io rayon pipeliner; do
 		for I in $REPETITIONS; do
 			for T in $NTHREADS; do
 				log "Running bzip $RUNTIME with $T threads: $I"
