@@ -263,11 +263,23 @@ fn rust_spp_gen_pipeline(spar_stream: &SparStream, gen: TokenStream) -> TokenStr
         }
     }
 
+    let mut external_vars = TokenStream::new();
+    let (ident, vtype) = get_idents_and_types_from_spar_vars(&spar_stream.attrs.output);
+    for (ident, vtype) in ident.iter().zip(vtype) {
+        external_vars.extend(quote! {
+            let #ident: #vtype = #ident.clone();
+
+        });
+    }
+
     quote! {
-        let mut spar_pipeline = rust_spp::pipeline![
-            #gen,
-            collect_ordered!()
-        ];
+        let mut spar_pipeline = {
+            #external_vars
+            rust_spp::pipeline![
+                #gen,
+                collect_ordered!()
+            ]
+        };
     }
 }
 
@@ -278,6 +290,7 @@ fn rust_spp_gen(spar_stream: &mut SparStream) -> TokenStream {
     let mut code = quote! {
         use rust_spp::*;
     };
+
     for (stage, spar_struct) in spar_stream.stages.iter().zip(spar_structs) {
         code.extend(spar_struct);
 
@@ -304,15 +317,8 @@ fn rust_spp_gen(spar_stream: &mut SparStream) -> TokenStream {
 }
 
 fn restore_external_vars(spar_stream: &SparStream) -> TokenStream {
-    let (ident, vtype) = get_idents_and_types_from_spar_vars(&spar_stream.attrs.output);
+    let (ident, _) = get_idents_and_types_from_spar_vars(&spar_stream.attrs.output);
     let mut code = TokenStream::new();
-
-    for (ident, vtype) in ident.iter().zip(vtype) {
-        code.extend(quote! {
-            let mut #ident: #vtype = Vec::new();
-
-        });
-    }
 
     if ident.len() > 1 {
         for (i, ident) in ident.iter().enumerate() {

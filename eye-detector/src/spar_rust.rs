@@ -39,7 +39,7 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
     let face_xml = core::find_file(unsafe { &super::FACE_XML_STR }, true, false)?;
     let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false)?;
 
-    let out: Vec<MatData> = Vec::new();
+    let mut out: Vec<MatData> = Vec::new();
     to_stream!(
         INPUT(face_xml: String, eye_xml: String, out: Vec<MatData>),
         {
