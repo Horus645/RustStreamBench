@@ -4,55 +4,107 @@ use std::time::SystemTime;
 
 use spar_rust::to_stream;
 
+struct Tcontent {
+    line: i64,
+    line_buffer: Vec<u8>,
+    a_buffer: Vec<f64>,
+    b_buffer: Vec<f64>,
+    k_buffer: Vec<i32>,
+}
+
 pub fn spar_rust_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: i32) {
     let start = SystemTime::now();
 
-    let m = Vec::with_capacity(size * size);
-    to_stream!(INPUT(m: Vec<u8>, size: usize), {
-        let init_a = -2.125;
-        let init_b = -1.5;
-        let range = 3.0;
-        let step = range / (size as f64);
-        let iter = iter_size1 + iter_size2;
-        for i in 0..size {
-            let i = i;
-            STAGE(
-                INPUT(
-                    m: Vec<u8>,
-                    i: usize,
-                    size: usize,
-                    iter: i32,
-                    init_a: f64,
-                    init_b: f64,
-                    step: f64,
-                ),
-                REPLICATE = threads,
-                {
-                    m.reserve(*size);
-                    for j in 0..*size {
-                        let j = j;
-                        let im = init_b + (step * (i as f64));
-                        let mut a = init_a + step * j as f64;
-                        let cr = a;
-                        let mut b = im;
-                        let mut k = 0;
+    let mut m = Vec::new();
+    to_stream!(
+        INPUT(m: Vec<u8>, size: usize, iter_size1: i32, iter_size2: i32),
+        {
+            for i in 0..size {
+                let content = Tcontent {
+                    line: i as i64,
+                    line_buffer: vec![0; size],
+                    a_buffer: vec![0.0; size],
+                    b_buffer: vec![0.0; size],
+                    k_buffer: vec![0; size],
+                };
+                STAGE(
+                    INPUT(content: Tcontent, size: usize, iter_size1: i32),
+                    OUTPUT(content: Tcontent),
+                    REPLICATE = threads,
+                    {
+                        let init_a = -2.125;
+                        let init_b = -1.5;
+                        let range = 3.0;
+                        let step = range / (*size as f64);
 
-                        for ii in 0..iter {
-                            let a2 = a * a;
-                            let b2 = b * b;
-                            if (a2 + b2) > 4.0 {
-                                break;
+                        let im = init_b + (step * (content.line as f64));
+
+                        for j in 0..*size {
+                            let mut a = init_a + step * j as f64;
+                            let cr = a;
+
+                            let mut b = im;
+                            let mut k = 0;
+
+                            for ii in 0..*iter_size1 {
+                                let a2 = a * a;
+                                let b2 = b * b;
+                                if (a2 + b2) > 4.0 {
+                                    break;
+                                }
+                                b = 2.0 * a * b + im;
+                                a = a2 - b2 + cr;
+                                k = ii;
                             }
-                            b = 2.0 * a * b + im;
-                            a = a2 - b2 + cr;
-                            k = ii;
+                            content.a_buffer[j] = a;
+                            content.b_buffer[j] = b;
+                            content.k_buffer[j] = k;
                         }
-                        m.push((255.0 - (k as f64 * 255.0 / (iter as f64))) as u8);
-                    }
-                },
-            );
+                    },
+                );
+                STAGE(
+                    INPUT(
+                        content: Tcontent,
+                        m: Vec<u8>,
+                        size: usize,
+                        iter_size1: i32,
+                        iter_size2: i32,
+                    ),
+                    REPLICATE = threads,
+                    {
+                        let init_a = -2.125;
+                        let init_b = -1.5;
+                        let range = 3.0;
+                        let step = range / (*size as f64);
+
+                        let im = init_b + (step * (content.line as f64));
+
+                        for j in 0..*size {
+                            let cr = init_a + step * j as f64;
+                            if content.k_buffer[j] == *iter_size1 - 1 {
+                                for ii in *iter_size1..*iter_size1 + *iter_size2 {
+                                    let a2 = content.a_buffer[j] * content.a_buffer[j];
+                                    let b2 = content.b_buffer[j] * content.b_buffer[j];
+                                    if (a2 + b2) > 4.0 {
+                                        break;
+                                    }
+                                    content.b_buffer[j] =
+                                        2.0 * content.a_buffer[j] * content.b_buffer[j] + im;
+                                    content.a_buffer[j] = a2 - b2 + cr;
+                                    content.k_buffer[j] = ii;
+                                }
+                            }
+                            content.line_buffer[j] = (255.0
+                                - ((content.k_buffer[j] as f64) * 255.0
+                                    / ((*iter_size1 + *iter_size2) as f64)))
+                                as u8;
+                        }
+                        m.extend(content.line_buffer);
+                    },
+                );
+            }
         }
-    });
+    );
 
     let system_duration = start.elapsed().expect("Failed to get render time?");
     let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
