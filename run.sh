@@ -186,7 +186,7 @@ run_image_processing_bench() {
 		for INPUT in ./inputs/image-processing/*; do
 			check_and_mkdir "$BENCH_DIR"/"$INPUT"
 			BENCHFILE="$BENCH_DIR"/"$INPUT"/sequential
-			./image-processing/target/release/image-processing sequential 1 "$INPUT" > "$BENCHFILE"
+			./image-processing/target/release/image-processing sequential 1 "$INPUT" >> "$BENCHFILE"
 		done
 	done
 
@@ -197,7 +197,7 @@ run_image_processing_bench() {
 				for INPUT in ./inputs/image-processing/*; do
 					check_and_mkdir "$BENCH_DIR"/"$INPUT"/"$RUNTIME"
 					BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"/"$T"
-					./image-processing/target/release/image-processing "$RUNTIME" "$T" "$INPUT" > "$BENCHFILE"
+					./image-processing/target/release/image-processing "$RUNTIME" "$T" "$INPUT" >> "$BENCHFILE"
 				done
 			done
 		done
@@ -226,7 +226,7 @@ run_eye_detector_bench() {
 			check_and_mkdir "$BENCH_DIR"/"$INPUT_FILENAME"
 			CHECKSUMS_FILE="$CHECKSUMS_DIR"/"$INPUT_FILENAME".checksum
 			BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/sequential
-			./eye-detector/target/release/eye-detector seq 1 "$INPUT" > "$BENCHFILE"
+			./eye-detector/target/release/eye-detector seq 1 "$INPUT" >> "$BENCHFILE"
 
 			if [ ! -f "$CHECKSUMS_FILE" ]; then
 				log "Creating checksum for $INPUT_FILENAME"
@@ -245,7 +245,7 @@ run_eye_detector_bench() {
 					check_and_mkdir "$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"
 					CHECKSUMS_FILE="$CHECKSUMS_DIR"/"$INPUT_FILENAME".checksum
 					BENCHFILE="$BENCH_DIR"/"$INPUT_FILENAME"/"$RUNTIME"/"$T"
-					./eye-detector/target/release/eye-detector "$RUNTIME" "$T" "$INPUT" > "$BENCHFILE"
+					./eye-detector/target/release/eye-detector "$RUNTIME" "$T" "$INPUT" >> "$BENCHFILE"
 					verify_checksum "$CHECKSUMS_FILE" $OUTFILE
 				done
 			done
