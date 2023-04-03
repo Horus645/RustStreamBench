@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use {opencv::core, std::env, std::time::SystemTime};
 pub mod common;
 mod par_better;
-mod par_rust_spp;
+mod par_rust_ssp;
 mod par_std_threads;
 mod par_tokio;
 mod seq;
@@ -46,13 +46,13 @@ fn main() -> opencv::Result<()> {
 
     match run_mode.as_str() {
         "seq" => seq::seq_eye_tracker(input_video)?,
-        "rust-spp" => par_rust_spp::rust_spp_eye_tracker(input_video, nthreads)?,
+        "rust-ssp" => par_rust_ssp::rust_ssp_eye_tracker(input_video, nthreads)?,
         "tokio" => par_tokio::tokio_eye_tracker(input_video, nthreads)?,
         "std-threads" => par_std_threads::std_threads_eye_tracker(input_video, nthreads)?,
         "better" => par_better::better_eye_tracker(input_video, nthreads)?,
         "spar-rust" => spar_rust::spar_rust_eye_tracker(input_video, nthreads)?,
         _ => println!(
-            "Invalid run_mode, use (seq | rust-spp | tokio | std-threads | better | spar-rust)"
+            "Invalid run_mode, use (seq | rust-ssp | tokio | std-threads | better | spar-rust)"
         ),
     }
 

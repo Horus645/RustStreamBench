@@ -97,7 +97,7 @@ impl In<MatData> for WriteOutput {
     }
 }
 
-pub fn rust_spp_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()> {
+pub fn rust_ssp_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()> {
     let mut video_in = videoio::VideoCapture::from_file(input_video, videoio::CAP_FFMPEG)?;
     let in_opened = videoio::VideoCapture::is_opened(&video_in)?;
     if !in_opened {
