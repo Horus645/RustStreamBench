@@ -90,7 +90,7 @@ fn gen_replicate(replicate: &Replicate) -> TokenStream {
                 }
             }
         }
-        Replicate::None => quote!(1),
+        _ => quote!(1),
     }
 }
 
@@ -248,17 +248,28 @@ fn rust_spp_pipeline_arg(stage: &SparStage) -> TokenStream {
         })
         .collect();
 
-    if attrs.replicate.is_none() {
-        quote! { rust_spp::sequential_ordered!(#struct_ident::new( #(#struct_new_args.clone()),* )) }
-    } else {
-        let replicate = gen_replicate(&attrs.replicate);
-        quote! { rust_spp::parallel!(#struct_ident::new( #(#struct_new_args.clone()),* ), #replicate) }
+    match attrs.replicate {
+        Replicate::Lit(_) | Replicate::Var(_) => {
+            let replicate = gen_replicate(&attrs.replicate);
+            quote! { rust_spp::parallel!(#struct_ident::new( #(#struct_new_args.clone()),* ), #replicate) }
+        }
+        Replicate::SeqOrdered => {
+            quote! { rust_spp::sequential_ordered!(#struct_ident::new( #(#struct_new_args.clone()),* )) }
+        }
+        Replicate::SeqUnordered => {
+            quote! { rust_spp::sequential!(#struct_ident::new( #(#struct_new_args.clone()),* )) }
+        }
     }
 }
 
 fn rust_spp_gen_pipeline(spar_stream: &SparStream, gen: TokenStream) -> TokenStream {
+    let collector = if matches!(spar_stream.attrs.replicate, Replicate::SeqOrdered) {
+        quote! { collect_ordered!() }
+    } else {
+        quote! { collect!() }
+    };
     if let Some(stage) = spar_stream.stages.last() {
-        if stage.attrs.replicate == Replicate::None && stage.attrs.output.is_empty() {
+        if stage.attrs.replicate.is_sequential() && stage.attrs.output.is_empty() {
             return quote! { let mut spar_pipeline = rust_spp::pipeline![#gen]; };
         }
     }
@@ -271,13 +282,12 @@ fn rust_spp_gen_pipeline(spar_stream: &SparStream, gen: TokenStream) -> TokenStr
 
         });
     }
-
     quote! {
         let mut spar_pipeline = {
             #external_vars
             rust_spp::pipeline![
                 #gen,
-                collect_ordered!()
+                #collector
             ]
         };
     }

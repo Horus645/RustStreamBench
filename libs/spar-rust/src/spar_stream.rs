@@ -13,6 +13,7 @@ mod kw {
     syn::custom_keyword!(STAGE);
     syn::custom_keyword!(INPUT);
     syn::custom_keyword!(OUTPUT);
+    syn::custom_keyword!(ORDERED);
     syn::custom_keyword!(REPLICATE);
 }
 
@@ -73,16 +74,17 @@ impl ToTokens for SparVar {
 pub enum Replicate {
     Lit(NonZeroU32),
     Var(Ident),
-    None,
+    SeqOrdered,
+    SeqUnordered,
 }
 
 impl Replicate {
-    pub fn is_none(&self) -> bool {
-        &Self::None == self
+    pub fn is_sequential(&self) -> bool {
+        matches!(self, Self::SeqOrdered | Self::SeqUnordered)
     }
 
-    pub fn is_some(&self) -> bool {
-        &Self::None != self
+    pub fn is_replicate(&self) -> bool {
+        matches!(self, Self::Lit(_) | Self::Var(_))
     }
 }
 
@@ -372,7 +374,7 @@ fn parse_spar_args(cursor: Cursor) -> Result<(SparAttrs, Cursor, Cursor)> {
 
     let mut input: Vec<SparVar> = Vec::new();
     let mut output: Vec<SparVar> = Vec::new();
-    let mut replicate = Replicate::None;
+    let mut replicate = Replicate::SeqUnordered;
 
     let mut rest = args;
     while let Some((token_tree, next)) = rest.token_tree() {
@@ -407,7 +409,7 @@ fn parse_spar_args(cursor: Cursor) -> Result<(SparAttrs, Cursor, Cursor)> {
                     rest = skip_punct(next, ',')?;
                 }
                 "REPLICATE" => {
-                    if replicate.is_some() {
+                    if !matches!(replicate, Replicate::SeqUnordered) {
                         return Err(syn::Error::new(
                             rest.span(),
                             "multiple REPLICATEs aren't allowed",
@@ -415,6 +417,16 @@ fn parse_spar_args(cursor: Cursor) -> Result<(SparAttrs, Cursor, Cursor)> {
                     }
                     let (r, next) = parse_replicate(next)?;
                     replicate = r;
+                    rest = skip_punct(next, ',')?;
+                }
+                "ORDERED" => {
+                    if !matches!(replicate, Replicate::SeqUnordered) {
+                        return Err(syn::Error::new(
+                            rest.span(),
+                            "only one of REPLICATE or ORDERED can be specified",
+                        ));
+                    }
+                    replicate = Replicate::SeqOrdered;
                     rest = skip_punct(next, ',')?;
                 }
 
@@ -637,7 +649,7 @@ mod tests {
         let (mut spar_stages, _) = parse_spar_stages(TokenBuffer::new2(stage).begin()).unwrap();
         assert_eq!(spar_stages.len(), 1);
 
-        let expected_attrs = SparAttrs::new(Vec::new(), Vec::new(), Replicate::None);
+        let expected_attrs = SparAttrs::new(Vec::new(), Vec::new(), Replicate::SeqUnordered);
         assert_eq!(
             spar_stages.pop().unwrap(),
             SparStage::new(expected_attrs, tokens, 0)
@@ -663,7 +675,7 @@ mod tests {
 
         let input = make_vars(&["a"], &["u32"], &stage);
         let output = Vec::new();
-        let replicate = Replicate::None;
+        let replicate = Replicate::SeqUnordered;
         let expected_attrs = SparAttrs::new(input, output, replicate);
         assert_eq!(
             spar_stages.pop().unwrap(),
@@ -692,7 +704,7 @@ mod tests {
 
         let input = make_vars(&["a", "b", "c"], &["u32", "u32", "u32"], &stage);
         let output = Vec::new();
-        let replicate = Replicate::None;
+        let replicate = Replicate::SeqUnordered;
         let expected_attrs = SparAttrs::new(input, output, replicate);
         assert_eq!(
             spar_stages.pop().unwrap(),
@@ -719,7 +731,7 @@ mod tests {
 
         let input = vec![];
         let output = make_vars(&["a"], &["u32"], &stage);
-        let replicate = Replicate::None;
+        let replicate = Replicate::SeqUnordered;
         let expected_attrs = SparAttrs::new(input, output, replicate);
         assert_eq!(
             spar_stages.pop().unwrap(),
@@ -749,7 +761,7 @@ mod tests {
 
         let input = vec![];
         let output = make_vars(&["a", "b", "c"], &["u32", "u32", "u32"], &stage);
-        let replicate = Replicate::None;
+        let replicate = Replicate::SeqUnordered;
         let expected_attrs = SparAttrs::new(input, output, replicate);
         assert_eq!(
             spar_stages.pop().unwrap(),
@@ -799,7 +811,7 @@ mod tests {
         assert_eq!(spar_stages.len(), 4);
         spar_stages.reverse();
 
-        let expected_attrs = SparAttrs::new(Vec::new(), Vec::new(), Replicate::None);
+        let expected_attrs = SparAttrs::new(Vec::new(), Vec::new(), Replicate::SeqUnordered);
         assert_eq!(
             spar_stages.pop().unwrap(),
             SparStage::new(expected_attrs, TokenStream::new(), 0)
@@ -807,7 +819,7 @@ mod tests {
 
         let input = make_vars(&["a"], &["u32"], &stage);
         let output = make_vars(&["b"], &["u32"], &stage);
-        let replicate = Replicate::None;
+        let replicate = Replicate::SeqUnordered;
         let expected_attrs = SparAttrs::new(input, output, replicate);
         assert_eq!(
             spar_stages.pop().unwrap(),
@@ -816,7 +828,7 @@ mod tests {
 
         let input = make_vars(&["c", "d"], &["u32", "u32"], &stage);
         let output = make_vars(&["e", "f", "g"], &["u32", "u32", "u32"], &stage);
-        let replicate = Replicate::None;
+        let replicate = Replicate::SeqUnordered;
         let expected_attrs = SparAttrs::new(input, output, replicate);
         assert_eq!(
             spar_stages.pop().unwrap(),

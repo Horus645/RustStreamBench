@@ -11,7 +11,7 @@ use crate::BLOCK_SIZE;
 pub fn spar_rust(threads: usize, file_action: &str, file_name: &str) {
     let mut file = File::open(file_name).expect("No file found.");
     let mut buffer_input = vec![];
-    let buffer_output = vec![];
+    let mut buffer_output = vec![];
     file.read_to_end(&mut buffer_input).unwrap();
 
     if file_action == "compress" {
@@ -71,7 +71,7 @@ pub fn spar_rust(threads: usize, file_action: &str, file_name: &str) {
                 // write stage
                 STAGE(
                     INPUT(output: Vec<u8>, size: usize, buffer_output: Vec<u8>),
-                    REPLICATE = 1,
+                    ORDERED,
                     {
                         buffer_output.extend(&output[0..size]);
                     },
@@ -92,7 +92,7 @@ pub fn spar_rust(threads: usize, file_action: &str, file_name: &str) {
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
         let outfile = File::create(decompressed_file_name).unwrap();
         let mut buf_write = BufWriter::new(outfile);
-        let buffer_output = vec![];
+        let mut buffer_output = vec![];
 
         // initialization
         let mut pos_init: usize;
@@ -160,7 +160,7 @@ pub fn spar_rust(threads: usize, file_action: &str, file_name: &str) {
                 );
                 STAGE(
                     INPUT(output: Vec<u8>, size: usize, buffer_output: Vec<u8>),
-                    REPLICATE = 1,
+                    ORDERED,
                     {
                         // write stage
                         buffer_output.extend(&output[0..size]);
@@ -238,15 +238,19 @@ pub fn spar_rust_io(threads: usize, file_action: &str, file_name: &str) {
                     },
                 );
                 // write stage
-                STAGE(INPUT(output: Vec<u8>, size: usize, filename: String), {
-                    let file = File::options()
-                        .create(true)
-                        .append(true)
-                        .open(filename)
-                        .unwrap();
-                    let mut buf_write = BufWriter::new(file);
-                    buf_write.write_all(&output[0..size]).unwrap();
-                });
+                STAGE(
+                    INPUT(output: Vec<u8>, size: usize, filename: String),
+                    ORDERED,
+                    {
+                        let file = File::options()
+                            .create(true)
+                            .append(true)
+                            .open(filename)
+                            .unwrap();
+                        let mut buf_write = BufWriter::new(file);
+                        buf_write.write_all(&output[0..size]).unwrap();
+                    },
+                );
             }
         });
 
@@ -328,15 +332,19 @@ pub fn spar_rust_io(threads: usize, file_action: &str, file_name: &str) {
                         let size = bz_buffer.total_out_lo32 as usize;
                     },
                 );
-                STAGE(INPUT(output: Vec<u8>, size: usize, filename: String), {
-                    let file = File::options()
-                        .create(true)
-                        .append(true)
-                        .open(filename)
-                        .unwrap();
-                    let mut buf_write = BufWriter::new(file);
-                    buf_write.write_all(&output[0..size]).unwrap();
-                });
+                STAGE(
+                    INPUT(output: Vec<u8>, size: usize, filename: String),
+                    ORDERED,
+                    {
+                        let file = File::options()
+                            .create(true)
+                            .append(true)
+                            .open(filename)
+                            .unwrap();
+                        let mut buf_write = BufWriter::new(file);
+                        buf_write.write_all(&output[0..size]).unwrap();
+                    },
+                );
             }
         });
 

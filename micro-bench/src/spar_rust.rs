@@ -18,6 +18,7 @@ pub fn spar_rust_pipeline(size: usize, threads: usize, iter_size1: i32, iter_siz
     let mut m = Vec::new();
     to_stream!(
         INPUT(m: Vec<u8>, size: usize, iter_size1: i32, iter_size2: i32),
+        ORDERED,
         {
             for i in 0..size {
                 let content = Tcontent {

@@ -87,8 +87,7 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
                     OUTPUT(frame: MatData),
                     REPLICATE = nthreads,
                     {
-                        let mut eyes_detector =
-                            objdetect::CascadeClassifier::new(eye_xml).unwrap();
+                        let mut eyes_detector = objdetect::CascadeClassifier::new(eye_xml).unwrap();
                         let EyesData {
                             mut frame,
                             equalized,
@@ -106,7 +105,7 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
                     },
                 );
                 //Write output frame
-                STAGE(INPUT(frame: MatData, out: Vec<MatData>), {
+                STAGE(INPUT(frame: MatData, out: Vec<MatData>), ORDERED, {
                     out.push(frame);
                 });
             }
