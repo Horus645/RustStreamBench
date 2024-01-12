@@ -16,7 +16,7 @@ image-processing
 fi
 
 LOG_FILE=benchmarks/log
-REPETITIONS=$(seq 1 1 | tr '\n' ' ')
+REPETITIONS=$(seq 1 10 | tr '\n' ' ')
 NTHREADS=$(seq 1 "$(nproc)" | tr '\n' ' ')
 CHECKSUM_ERROR_MSG="!!!ERROR!!! Checksums failed to verify:"
 
@@ -91,7 +91,7 @@ run_bzip2() {
 		done
 	done
 
-	for RUNTIME in rust-ssp rust-spp-io spar-rust spar-rust-io std-threads std-threads-io tokio tokio-io rayon pipeliner; do
+	for RUNTIME in rust-ssp rust-spp-io spar-rust spar-rust-io spar-rust-v2 spar-rust-v2-io std-threads std-threads-io tokio tokio-io rayon; do
 		for I in $REPETITIONS; do
 			for T in $NTHREADS; do
 				log "Running bzip $RUNTIME with $T threads: $I"
@@ -156,7 +156,7 @@ run_micro_bench() {
 		rm "$OUTFILE"
 	done
 
-	for RUNTIME in rust-ssp spar-rust std-threads tokio rayon pipeliner; do
+	for RUNTIME in rust-ssp spar-rust spar-rust-v2 std-threads tokio rayon; do
 		OUTFILE=result_"$RUNTIME".txt
 		for I in $REPETITIONS; do
 			for T in $NTHREADS; do
@@ -190,7 +190,7 @@ run_image_processing_bench() {
 		done
 	done
 
-	for RUNTIME in rust-ssp spar-rust std-threads tokio rayon pipeliner; do
+	for RUNTIME in rust-ssp spar-rust spar-rust-v2 std-threads tokio rayon; do
 		for I in $REPETITIONS; do
 			for T in $NTHREADS; do
 				log "Running image-processing $RUNTIME with $T threads: $I"
@@ -236,7 +236,7 @@ run_eye_detector_bench() {
 		done
 	done
 
-	for RUNTIME in rust-ssp spar-rust std-threads tokio better; do
+	for RUNTIME in rust-ssp spar-rust spar-rust-v2 tokio better; do
 		for I in $REPETITIONS; do
 			for T in $NTHREADS; do
 				log "Running eye-detector $RUNTIME with $T threads: $I"
