@@ -24,44 +24,29 @@ pub fn spar_rust(dir_name: &str, threads: usize) {
         for image in all_images {
             let image = image;
             STAGE(
-                INPUT(image: Image),
-                OUTPUT(image: Image),
-                REPLICATE = threads,
-                {
+                INPUT(image: Image), OUTPUT(image: Image), REPLICATE = threads, {
                     filter::saturation(&mut image, 0.2).unwrap();
-                },
+                }
             );
             STAGE(
-                INPUT(image: Image),
-                OUTPUT(image: Image),
-                REPLICATE = threads,
-                {
+                INPUT(image: Image), OUTPUT(image: Image), REPLICATE = threads, {
                     filter::emboss(&mut image).unwrap();
-                },
+                }
             );
             STAGE(
-                INPUT(image: Image),
-                OUTPUT(image: Image),
-                REPLICATE = threads,
-                {
+                INPUT(image: Image), OUTPUT(image: Image), REPLICATE = threads, {
                     filter::gamma(&mut image, 2.0).unwrap();
-                },
+                }
             );
             STAGE(
-                INPUT(image: Image),
-                OUTPUT(image: Image),
-                REPLICATE = threads,
-                {
+                INPUT(image: Image), OUTPUT(image: Image), REPLICATE = threads, {
                     filter::sharpen(&mut image).unwrap();
-                },
+                }
             );
             STAGE(
-                INPUT(image: Image),
-                OUTPUT(image: Image),
-                REPLICATE = threads,
-                {
+                INPUT(image: Image), OUTPUT(image: Image), REPLICATE = threads, {
                     filter::grayscale(&mut image).unwrap();
-                },
+                }
             );
         }
     });
