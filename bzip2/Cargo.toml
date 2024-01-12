@@ -17,6 +17,7 @@ bzip2-sys = { version = "0.1.7", path = "bzip2-sys" }
 
 # Spar-Rust
 spar-rust = { path = "../libs/spar-rust" }
+spar-rust-v2 = { path = "../../spar-rust-v2" }
 
 # Rust-SSP
 rust-spp = { path = "../libs/rust-ssp" }

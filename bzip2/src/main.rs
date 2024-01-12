@@ -5,6 +5,7 @@ mod rayon;
 mod rust_ssp;
 mod sequential;
 mod spar_rust;
+mod spar_rust_v2;
 mod std_threads;
 mod tokio;
 
@@ -31,6 +32,8 @@ fn main() -> Result<(), String> {
         "rust-ssp-io" => rust_ssp::rust_ssp_io(threads, file_action, file_name),
         "spar-rust" => spar_rust::spar_rust(threads, file_action, file_name),
         "spar-rust-io" => spar_rust::spar_rust_io(threads, file_action, file_name),
+        "spar-rust-v2" => spar_rust_v2::spar_rust_v2(threads, file_action, file_name),
+        "spar-rust-v2-io" => spar_rust_v2::spar_rust_v2_io(threads, file_action, file_name),
         "std-threads" => std_threads::std_threads(threads, file_action, file_name),
         "std-threads-io" => std_threads::std_threads_io(threads, file_action, file_name),
         "tokio" => tokio::tokio(threads, file_action, file_name),

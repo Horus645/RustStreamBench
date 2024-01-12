@@ -3,7 +3,6 @@ use std::io::{prelude::*, BufWriter};
 use std::mem;
 use std::time::SystemTime;
 
-use rust_spp::*;
 use spar_rust::to_stream;
 
 use crate::BLOCK_SIZE;
