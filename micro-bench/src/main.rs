@@ -3,6 +3,7 @@ mod rayon;
 mod rust_ssp;
 mod sequential;
 mod spar_rust;
+mod spar_rust_v2;
 mod std_threads;
 mod tokio;
 
@@ -25,6 +26,7 @@ fn main() {
         "sequential" => sequential::sequential(size, iter_size1, iter_size2),
         "rust-ssp" => rust_ssp::rust_ssp_pipeline(size, threads, iter_size1, iter_size2),
         "spar-rust" => spar_rust::spar_rust_pipeline(size, threads, iter_size1, iter_size2),
+        "spar-rust-v2" => spar_rust_v2::spar_rust_v2_pipeline(size, threads, iter_size1, iter_size2),
         "std-threads" => std_threads::std_threads_pipeline(size, threads, iter_size1, iter_size2),
         "tokio" => tokio::tokio_pipeline(size, threads, iter_size1, iter_size2),
         "rayon" => rayon::rayon_pipeline(size, threads, iter_size1, iter_size2),
