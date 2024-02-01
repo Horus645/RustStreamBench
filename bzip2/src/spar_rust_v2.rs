@@ -89,24 +89,9 @@ fn decompress_stage(buffer_input: Vec<u8>) -> (Vec<u8>, usize) {
     (output, size)
 }
 
-static mut RAM_SINK_BUFFER_OUTPUT: Vec<u8> = Vec::new();
 #[sink(Ordered)]
-fn in_memory_sink(output: Vec<u8>, size: usize) {
-    unsafe {
-        RAM_SINK_BUFFER_OUTPUT.extend(&output[0..size]);
-    }
-}
-
-static mut IO_SINK_FILE_OUTPUT: String = String::new();
-#[sink(Ordered)]
-fn disk_memory_sink(output: Vec<u8>, size: usize) {
-    let file = File::options()
-        .create(true)
-        .append(true)
-        .open(unsafe { &IO_SINK_FILE_OUTPUT })
-        .unwrap();
-    let mut buf_write = BufWriter::new(file);
-    buf_write.write_all(&output[0..size]).unwrap();
+fn bzip_sink(output: Vec<u8>, size: usize) -> (Vec<u8>, usize) {
+    (output, size)
 }
 
 pub fn spar_rust_v2(threads: usize, file_action: &str, file_name: &str) {
@@ -121,13 +106,14 @@ pub fn spar_rust_v2(threads: usize, file_action: &str, file_name: &str) {
 
         let start = SystemTime::now();
 
-        to_stream!(multithreaded: [
-            in_mem_compress_source, (buffer_input),
-            (compress_stage, threads),
-            in_memory_sink,
-        ])
-        .join()
-        .unwrap();
+        let mut output = Vec::new();
+        for (v, size) in to_stream!(multithreaded: [
+            in_mem_compress_source(buffer_input),
+            (compress_stage(), threads),
+            bzip_sink,
+        ]) {
+            output.extend(&v[0..size])
+        }
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
@@ -135,9 +121,7 @@ pub fn spar_rust_v2(threads: usize, file_action: &str, file_name: &str) {
         println!("Execution time: {in_sec} sec");
 
         // write compressed data to file
-        buf_write
-            .write_all(unsafe { &RAM_SINK_BUFFER_OUTPUT })
-            .unwrap();
+        buf_write.write_all(&output).unwrap();
         std::fs::remove_file(file_name).unwrap();
     } else if file_action == "decompress" {
         // creating the decompressed file
@@ -180,13 +164,14 @@ pub fn spar_rust_v2(threads: usize, file_action: &str, file_name: &str) {
 
         let start = SystemTime::now();
 
-        to_stream!(multithreaded: [
-            in_mem_decompress_source, (buffer_input, queue_blocks),
-            (decompress_stage, threads),
-            in_memory_sink,
-        ])
-        .join()
-        .unwrap();
+        let mut output = Vec::new();
+        for (v, size) in to_stream!(multithreaded: [
+            in_mem_decompress_source(buffer_input, queue_blocks),
+            (decompress_stage(), threads),
+            bzip_sink,
+        ]) {
+            output.extend(&v[0..size])
+        }
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
@@ -194,10 +179,7 @@ pub fn spar_rust_v2(threads: usize, file_action: &str, file_name: &str) {
         println!("Execution time: {in_sec} sec");
 
         // write decompressed data to file
-        println!("{}", unsafe { &RAM_SINK_BUFFER_OUTPUT }.len());
-        buf_write
-            .write_all(unsafe { &RAM_SINK_BUFFER_OUTPUT })
-            .unwrap();
+        buf_write.write_all(&output).unwrap();
         std::fs::remove_file(file_name).unwrap();
     }
 }
@@ -209,19 +191,20 @@ pub fn spar_rust_v2_io(threads: usize, file_action: &str, file_name: &str) {
         let compressed_file_name = file_name.to_owned() + ".bz2";
 
         // initialization
+        let outfile = File::options()
+            .create(true)
+            .open(compressed_file_name)
+            .unwrap();
+        let mut buf_write = BufWriter::new(outfile);
 
         let start = SystemTime::now();
-        unsafe {
-            IO_SINK_FILE_OUTPUT = compressed_file_name;
+        for (v, size) in to_stream!(multithreaded: [
+            io_compress_source(file),
+            (compress_stage(), threads),
+            bzip_sink
+        ]) {
+            buf_write.write_all(&v[0..size]).unwrap();
         }
-
-        to_stream!(multithreaded: [
-            io_compress_source, (file),
-            (compress_stage, threads),
-            disk_memory_sink
-        ])
-        .join()
-        .unwrap();
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
@@ -269,20 +252,21 @@ pub fn spar_rust_v2_io(threads: usize, file_action: &str, file_name: &str) {
             queue_blocks.push((pos_init, pos_end));
         }
 
+        // initialization
+        let outfile = File::options()
+            .create(true)
+            .open(decompressed_file_name)
+            .unwrap();
+        let mut buf_write = BufWriter::new(outfile);
         let start = SystemTime::now();
 
-        // Stream region
-        unsafe {
-            IO_SINK_FILE_OUTPUT = decompressed_file_name.to_string();
+        for (v, size) in to_stream!(multithreaded: [
+            in_mem_decompress_source(buffer_input, queue_blocks),
+            (decompress_stage(), threads),
+            bzip_sink,
+        ]) {
+            buf_write.write_all(&v[0..size]).unwrap();
         }
-
-        to_stream!(multithreaded: [
-            in_mem_decompress_source, (buffer_input, queue_blocks),
-            (decompress_stage, threads),
-            disk_memory_sink,
-        ])
-        .join()
-        .unwrap();
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =

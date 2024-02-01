@@ -86,28 +86,28 @@ fn stage2(mut content: Tcontent, iter_size1: i32, iter_size2: i32) -> Vec<u8> {
     content.line_buffer
 }
 
-static mut SINK_OUTPUT: Vec<u8> = Vec::new();
 #[spar_rust_v2::sink(Ordered)]
-fn sink(line_buffer: Vec<u8>) {
-    unsafe { SINK_OUTPUT.extend(line_buffer.into_iter()) }
+fn sink(line_buffer: Vec<u8>) -> Vec<u8> {
+    line_buffer
 }
 
 pub fn spar_rust_v2_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: i32) {
+    let mut output = Vec::new();
     let start = SystemTime::now();
 
-    spar_rust_v2::to_stream!(multithreaded: [
+    for line_buffer in spar_rust_v2::to_stream!(multithreaded: [
          source(size),
          (stage1(iter_size1), threads),
          (stage2(iter_size1, iter_size2), threads),
          sink,
-    ])
-    .join()
-    .unwrap();
+    ]) {
+        output.extend(&line_buffer);
+    }
 
     let system_duration = start.elapsed().expect("Failed to get render time?");
     let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
     println!("Execution time spar-rust: {in_sec} sec");
 
     let mut buffer = File::create("result_spar-rust-v2.txt").unwrap();
-    buffer.write_all(unsafe { &SINK_OUTPUT }).unwrap();
+    buffer.write_all(&output).unwrap();
 }
