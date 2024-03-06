@@ -8,6 +8,7 @@ mod par_std_threads;
 mod par_tokio;
 mod seq;
 mod spar_rust;
+mod spar_rust_v2;
 
 pub static mut FACE_XML_STR: String = String::new();
 pub static mut EYE_XML_STR: String = String::new();

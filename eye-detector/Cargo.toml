@@ -18,6 +18,7 @@ rust-spp = { path = "../libs/rust-ssp" }
 
 # spar-rust
 spar-rust = { path = "../libs/spar-rust" }
+spar-rust-v2 = { path = "../../spar-rust-v2" }
 
 # Rust Standard Library + Crossbeam
 crossbeam-channel = "0.5"
