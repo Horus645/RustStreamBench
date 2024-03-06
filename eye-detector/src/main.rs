@@ -51,6 +51,7 @@ fn main() -> opencv::Result<()> {
         "std-threads" => par_std_threads::std_threads_eye_tracker(input_video, nthreads)?,
         "better" => par_better::better_eye_tracker(input_video, nthreads)?,
         "spar-rust" => spar_rust::spar_rust_eye_tracker(input_video, nthreads)?,
+        "spar-rust-v2" => spar_rust_v2::spar_rust_v2_eye_tracker(input_video, nthreads)?,
         _ => println!(
             "Invalid run_mode, use (seq | rust-ssp | tokio | std-threads | better | spar-rust)"
         ),
