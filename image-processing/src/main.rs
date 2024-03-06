@@ -5,6 +5,7 @@ mod rayon;
 mod rust_ssp;
 mod sequential;
 mod spar_rust;
+mod spar_rust_v2;
 mod std_threads;
 mod tokio;
 
@@ -25,6 +26,7 @@ fn main() -> std::io::Result<()> {
         "sequential" => sequential::sequential(dir_name),
         "rust-ssp" => rust_ssp::rust_ssp(dir_name, threads),
         "spar-rust" => spar_rust::spar_rust(dir_name, threads),
+        "spar-rust-v2" => spar_rust_v2::spar_rust_v2(dir_name, threads),
         "pipeliner" => pipeliner::pipeliner(dir_name, threads),
         "tokio" => tokio::tokio(dir_name, threads),
         "rayon" => rayon::rayon(dir_name, threads),
