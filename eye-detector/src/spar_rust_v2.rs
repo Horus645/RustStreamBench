@@ -9,6 +9,12 @@ struct MatData {
 unsafe impl Sync for MatData {}
 unsafe impl Send for MatData {}
 
+impl Debug for MatData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
 struct EyesData {
     frame: Mat,
     equalized: Mat,
