@@ -5,12 +5,14 @@ mod rayon;
 mod rust_ssp;
 mod sequential;
 mod spar_rust;
+mod spar_rust_mpi;
 mod spar_rust_v2;
 mod std_threads;
 mod tokio;
 
 pub const BLOCK_SIZE: usize = 900000;
 fn main() -> Result<(), String> {
+    env_logger::init();
     let args: Vec<String> = env::args().collect();
     if args.len() < 4 {
         return Err(format!(
@@ -32,6 +34,8 @@ fn main() -> Result<(), String> {
         "rust-ssp-io" => rust_ssp::rust_ssp_io(threads, file_action, file_name),
         "spar-rust" => spar_rust::spar_rust(threads, file_action, file_name),
         "spar-rust-io" => spar_rust::spar_rust_io(threads, file_action, file_name),
+        "spar-rust-mpi" => spar_rust_mpi::spar_rust_mpi(threads, file_action, file_name),
+        "spar-rust-mpi-io" => spar_rust_mpi::spar_rust_mpi_io(threads, file_action, file_name),
         "spar-rust-v2" => spar_rust_v2::spar_rust_v2(threads, file_action, file_name),
         "spar-rust-v2-io" => spar_rust_v2::spar_rust_v2_io(threads, file_action, file_name),
         "std-threads" => std_threads::std_threads(threads, file_action, file_name),

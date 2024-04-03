@@ -94,7 +94,7 @@ fn bzip_sink(output: Vec<u8>, size: usize) -> (Vec<u8>, usize) {
     (output, size)
 }
 
-pub fn spar_rust_v2(threads: usize, file_action: &str, file_name: &str) {
+pub fn spar_rust_mpi(threads: usize, file_action: &str, file_name: &str) {
     let mut file = File::open(file_name).expect("No file found.");
     let mut buffer_input = Vec::with_capacity(1 << 10);
     file.read_to_end(&mut buffer_input).unwrap();
@@ -107,7 +107,7 @@ pub fn spar_rust_v2(threads: usize, file_action: &str, file_name: &str) {
         let start = SystemTime::now();
 
         let mut output = Vec::new();
-        for (v, size) in to_stream!(multithreaded: [
+        for (v, size) in to_stream!(mpi: [
             in_mem_compress_source(buffer_input),
             (compress_stage(), threads),
             bzip_sink,
@@ -167,7 +167,7 @@ pub fn spar_rust_v2(threads: usize, file_action: &str, file_name: &str) {
         let start = SystemTime::now();
 
         let mut output = Vec::new();
-        for (v, size) in to_stream!(multithreaded: [
+        for (v, size) in to_stream!(mpi: [
             in_mem_decompress_source(buffer_input, queue_blocks),
             (decompress_stage(), threads),
             bzip_sink,
@@ -188,7 +188,7 @@ pub fn spar_rust_v2(threads: usize, file_action: &str, file_name: &str) {
     }
 }
 
-pub fn spar_rust_v2_io(threads: usize, file_action: &str, file_name: &str) {
+pub fn spar_rust_mpi_io(threads: usize, file_action: &str, file_name: &str) {
     let mut file = File::open(file_name).expect("No file found.");
 
     if file_action == "compress" {
@@ -199,7 +199,7 @@ pub fn spar_rust_v2_io(threads: usize, file_action: &str, file_name: &str) {
         let mut buf_write = BufWriter::new(outfile);
 
         let start = SystemTime::now();
-        for (v, size) in to_stream!(multithreaded: [
+        for (v, size) in to_stream!(mpi: [
             io_compress_source(file),
             (compress_stage(), threads),
             bzip_sink
@@ -260,7 +260,7 @@ pub fn spar_rust_v2_io(threads: usize, file_action: &str, file_name: &str) {
         let mut buf_write = BufWriter::new(outfile);
         let start = SystemTime::now();
 
-        for (v, size) in to_stream!(multithreaded: [
+        for (v, size) in to_stream!(mpi: [
             in_mem_decompress_source(buffer_input, queue_blocks),
             (decompress_stage(), threads),
             bzip_sink,
