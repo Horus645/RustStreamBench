@@ -1,5 +1,6 @@
 use std::env;
 
+mod mpi;
 mod pipeliner;
 mod rayon;
 mod rust_ssp;
@@ -28,6 +29,8 @@ fn main() -> Result<(), String> {
     let file_name = &args[4];
 
     match run_mode.as_str() {
+        "mpi" => mpi::rsmpi(threads, file_action, file_name),
+        "mpi-io" => mpi::rsmpi_io(threads, file_action, file_name),
         "sequential" => sequential::sequential(file_action, file_name),
         "sequential-io" => sequential::sequential_io(file_action, file_name),
         "rust-ssp" => rust_ssp::rust_ssp(threads, file_action, file_name),

@@ -203,6 +203,7 @@ dependencies = [
  "env_logger",
  "futures 0.3.30",
  "libc",
+ "mpi",
  "pipeliner",
  "rayon",
  "rust-spp 0.1.0",
