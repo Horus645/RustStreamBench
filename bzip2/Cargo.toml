@@ -11,6 +11,8 @@ repository = "https://github.com/GMAP/RustStreamBench"
 readme = "README.md"
 
 [dependencies]
+log = { version = "0.4", features = ["max_level_trace", "release_max_level_off"] }
+
 chrono = "0.4"
 libc = "0.2"
 bzip2-sys = { version = "0.1.7", path = "bzip2-sys" }
