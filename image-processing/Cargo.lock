@@ -1294,6 +1294,7 @@ name = "spar-rust"
 version = "0.2.0"
 dependencies = [
  "bincode",
+ "log",
  "mpi",
  "rayon-core",
  "serde",
