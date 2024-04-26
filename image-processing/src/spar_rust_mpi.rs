@@ -1,8 +1,40 @@
 use raster::filter;
-use raster::Image;
+use serde::{ser::SerializeStruct, Deserialize, Serialize};
 use std::time::SystemTime;
 
 use spar_rust_v2::*;
+
+#[derive(Debug)]
+#[repr(transparent)]
+struct Image(raster::Image);
+
+impl Serialize for Image {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let raster::Image {
+            width,
+            height,
+            bytes,
+        } = &self.0;
+
+        let mut state = serializer.serialize_struct("Image", 3)?;
+        state.serialize_field("width", width)?;
+        state.serialize_field("height", height)?;
+        state.serialize_field("bytes", bytes)?;
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for Image {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        todo!()
+    }
+}
 
 #[source]
 #[inline]
@@ -12,31 +44,31 @@ fn source(images: Vec<Image>) -> impl Iterator<Item = Image> {
 
 #[stage]
 fn stage1(mut img: Image) -> Image {
-    filter::saturation(&mut img, 0.2).unwrap();
+    filter::saturation(&mut img.0, 0.2).unwrap();
     img
 }
 
 #[stage]
 fn stage2(mut img: Image) -> Image {
-    filter::emboss(&mut img).unwrap();
+    filter::emboss(&mut img.0).unwrap();
     img
 }
 
 #[stage]
 fn stage3(mut img: Image) -> Image {
-    filter::gamma(&mut img, 2.0).unwrap();
+    filter::gamma(&mut img.0, 2.0).unwrap();
     img
 }
 
 #[stage]
 fn stage4(mut img: Image) -> Image {
-    filter::sharpen(&mut img).unwrap();
+    filter::sharpen(&mut img.0).unwrap();
     img
 }
 
 #[stage]
 fn stage5(mut img: Image) -> Image {
-    filter::grayscale(&mut img).unwrap();
+    filter::grayscale(&mut img.0).unwrap();
     img
 }
 
@@ -45,7 +77,7 @@ fn sink(_: Image) {
     // noop
 }
 
-pub fn spar_rust_v2(dir_name: &str, threads: usize) {
+pub fn spar_rust_mpi(dir_name: &str, threads: usize) {
     let dir_entries = std::fs::read_dir(dir_name);
     let mut all_images: Vec<Image> = Vec::new();
 
@@ -56,12 +88,12 @@ pub fn spar_rust_v2(dir_name: &str, threads: usize) {
         if path.extension().is_none() {
             continue;
         }
-        all_images.push(raster::open(path.to_str().unwrap()).unwrap());
+        all_images.push(Image(raster::open(path.to_str().unwrap()).unwrap()));
     }
 
     let start = SystemTime::now();
 
-    let _: Vec<()> = to_stream!(multithreaded: [
+    let _: Vec<()> = to_stream!(mpi: [
         source(all_images),
         (stage1(), threads),
         (stage2(), threads),

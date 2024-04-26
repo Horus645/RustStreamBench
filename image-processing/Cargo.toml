@@ -19,18 +19,19 @@ rust-spp = { path = "../libs/rust-ssp" }
 # Spar-Rust
 spar-rust = { path = "../libs/spar-rust" }
 spar-rust-v2 = { path = "../../spar-rust-v2" }
+serde = { version = "1.0", default_features = false }
 
 # Rust Standard Library + Crossbeam
 crossbeam-channel = "0.5"
 crossbeam-utils = "0.8"
 
 # Tokio
-tokio = { version = "1.36", features = ["full"] }
+tokio = { version = "1.37", features = ["full"] }
 futures = "0.3"
 tokio-core = "0.1"
 
 # Rayon
-rayon = "1.9"
+rayon = "1.10"
 
 # Pipeliner
 pipeliner = "1.0"
