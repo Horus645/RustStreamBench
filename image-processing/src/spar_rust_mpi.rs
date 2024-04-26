@@ -1,5 +1,5 @@
 use raster::filter;
-use serde::{ser::SerializeStruct, Deserialize, Serialize};
+use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
 use std::time::SystemTime;
 
 use spar_rust_v2::*;
@@ -32,7 +32,25 @@ impl<'de> Deserialize<'de> for Image {
     where
         D: serde::Deserializer<'de>,
     {
-        todo!()
+        #[derive(Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Filed {
+            Width,
+            Height,
+            Bytes,
+        }
+
+        struct ImageVisitor;
+
+        impl<'de> Visitor<'de> for ImageVisitor {
+            type Value = Image;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("struct Image")
+            }
+        }
+
+        deserializer.deserialize_struct("Image", &["width", "height", "bytes"], ImageVisitor)
     }
 }
 
