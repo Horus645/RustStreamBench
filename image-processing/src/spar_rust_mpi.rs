@@ -48,6 +48,20 @@ impl<'de> Deserialize<'de> for Image {
             fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
                 formatter.write_str("struct Image")
             }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                let width = seq.next_element()?.unwrap();
+                let height = seq.next_element()?.unwrap();
+                let bytes = seq.next_element()?.unwrap();
+                Ok(Image(raster::Image {
+                    width,
+                    height,
+                    bytes,
+                }))
+            }
         }
 
         deserializer.deserialize_struct("Image", &["width", "height", "bytes"], ImageVisitor)
