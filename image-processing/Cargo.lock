@@ -524,9 +524,11 @@ dependencies = [
 name = "image-processing"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "crossbeam-channel 0.5.12",
  "crossbeam-utils 0.8.19",
  "futures 0.3.30",
+ "mpi",
  "pipeliner",
  "raster",
  "rayon",

@@ -35,3 +35,7 @@ rayon = "1.10"
 
 # Pipeliner
 pipeliner = "1.0"
+
+# Mpi
+mpi = "0.7"
+bincode = "1.3"
