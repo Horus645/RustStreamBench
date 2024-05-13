@@ -21,13 +21,14 @@ for _ in $(seq 1 $REPETITIONS); do
 		for input in $INPUTS; do 
 			threads=$((workers - 1))
 			for runtime in $RUNTIMES; do
-				LOG_COMPRESS="${LOG_DIR}/${runtime}/${input}/compress/"
+				LOG_COMPRESS="${LOG_DIR}/${runtime}/$(basename "$input")/compress/"
 				mkdir -p "$LOG_COMPRESS"
-				LOG_DECOMPRESS="${LOG_DIR}/${runtime}/${input}/decompress/"
+				LOG_DECOMPRESS="${LOG_DIR}/${runtime}/$(basename "$input")/decompress/"
 				mkdir -p "$LOG_DECOMPRESS"
 
-				echo "Running $input with $runtime - $workers"
+				echo "Running $input compression with $runtime - $workers"
 				mpirun -n "$workers" --oversubscribe ./target/release/bzip2 "$runtime" $threads compress "$input" | tee -a "${LOG_COMPRESS}/${workers}"
+				echo "Running ${input}.bz decompression with $runtime - $workers"
 				mpirun -n "$workers" --oversubscribe ./target/release/bzip2 "$runtime" $threads decompress "$input".bz2 | tee -a "${LOG_DECOMPRESS}/${workers}"
 			done
 		done
