@@ -145,7 +145,7 @@ run_micro_bench() {
 		log "Running micro-bench sequential: $I"
 		check_and_mkdir "$BENCH_DIR"/"$INPUT"
 		BENCHFILE="$BENCH_DIR"/"$INPUT"/sequential
-		./micro-bench/target/release/micro-bench sequential $MD 1 $ITER1 $ITER2 "$INPUT" >> "$BENCHFILE"
+		./micro-bench/target/release/micro-bench sequential $MD 1 $ITER1 $ITER2 >> "$BENCHFILE"
 
 		OUTFILE=result_sequential.txt
 		if [ ! -f "$CHECKSUMS_FILE" ]; then
@@ -164,7 +164,7 @@ run_micro_bench() {
 
 				check_and_mkdir "$BENCH_DIR"/"$INPUT"/"$RUNTIME"
 				BENCHFILE="$BENCH_DIR"/"$INPUT"/"$RUNTIME"/"$T"
-				./micro-bench/target/release/micro-bench "$RUNTIME" $MD "$T" $ITER1 $ITER2 "$INPUT" >> "$BENCHFILE"
+				./micro-bench/target/release/micro-bench "$RUNTIME" $MD "$T" $ITER1 $ITER2 >> "$BENCHFILE"
 				verify_checksum "$CHECKSUMS_FILE" "$OUTFILE"
 				rm "$OUTFILE"
 			done

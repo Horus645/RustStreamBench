@@ -16,6 +16,7 @@ rust-spp = { path = "../libs/rust-ssp" }
 # Spar-Rust
 spar-rust = { path = "../libs/spar-rust" }
 spar-rust-v2 = { path = "../../spar-rust-v2" }
+serde = { version = "1.0", default-features = false, features = [ "derive" ] }
 
 # Rust Standard Library + Crossbeam
 crossbeam-channel = "0.5"
@@ -31,3 +32,11 @@ rayon = "1.7"
 
 # Pipeliner
 pipeliner = "1.0.1"
+
+# Mpi
+bincode = "1.3"
+
+[features]
+default = [ "multithreaded", "mpi" ]
+multithreaded = []
+mpi = []

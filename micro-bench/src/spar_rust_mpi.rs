@@ -2,6 +2,10 @@ use std::fs::File;
 use std::io::Write;
 use std::time::SystemTime;
 
+use serde::{Deserialize, Serialize};
+use spar_rust_v2::{mpi, to_stream};
+
+#[derive(Debug, Serialize, Deserialize)]
 struct Tcontent {
     line: i64,
     line_buffer: Vec<u8>,
@@ -91,11 +95,11 @@ fn sink(line_buffer: Vec<u8>) -> Vec<u8> {
     line_buffer
 }
 
-pub fn spar_rust_v2_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: i32) {
+pub fn spar_rust_mpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: i32) {
     let mut output = Vec::new();
     let start = SystemTime::now();
 
-    for line_buffer in spar_rust_v2::to_stream!(multithreaded: [
+    for line_buffer in to_stream!(mpi: [
          source(size),
          (stage1(iter_size1), threads),
          (stage2(iter_size1, iter_size2), threads),
@@ -108,8 +112,8 @@ pub fn spar_rust_v2_pipeline(size: usize, threads: usize, iter_size1: i32, iter_
 
     let system_duration = start.elapsed().expect("Failed to get render time?");
     let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
-    println!("Execution time spar-rust-v2: {in_sec} sec");
+    println!("Execution time spar-rust-mpi: {in_sec} sec");
 
-    let mut buffer = File::create("result_spar-rust-v2.txt").unwrap();
+    let mut buffer = File::create("result_spar-rust-mpi.txt").unwrap();
     buffer.write_all(&output).unwrap();
 }
