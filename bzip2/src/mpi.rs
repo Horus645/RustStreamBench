@@ -28,6 +28,7 @@ pub fn rsmpi(threads: usize, file_action: &str, file_name: &str) {
             .expect("failed to initialize mpi");
         let world = universe.world();
         let size = world.size() as usize;
+        let threads = threads + 1;
 
         if size < threads {
             panic!("trying to execute with {threads} workers, but only have {size}");
