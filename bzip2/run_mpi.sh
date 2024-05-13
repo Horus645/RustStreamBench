@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ $# -lt 3 ]; then
+if [ $# -lt 2 ]; then
 	echo "usage: $0 <inputs directory> <maximum number of workers> "
 	exit 1
 fi
