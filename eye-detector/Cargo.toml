@@ -31,3 +31,7 @@ tokio-core = "0.1"
 
 # Pipeliner
 pipeliner = "1.0"
+
+# Mpi
+serde = { version = "1.0", default_features = false, features = [ "derive" ]}
+bincode = { version = "1.3" }

@@ -9,6 +9,8 @@ mod par_tokio;
 mod seq;
 mod spar_rust;
 mod spar_rust_v2;
+mod spar_rust_mpi;
+mod mpi;
 
 pub static mut FACE_XML_STR: String = String::new();
 pub static mut EYE_XML_STR: String = String::new();
@@ -53,6 +55,8 @@ fn main() -> opencv::Result<()> {
         "better" => par_better::better_eye_tracker(input_video, nthreads)?,
         "spar-rust" => spar_rust::spar_rust_eye_tracker(input_video, nthreads)?,
         "spar-rust-v2" => spar_rust_v2::spar_rust_v2_eye_tracker(input_video, nthreads)?,
+        "spar-rust-mpi" => spar_rust_mpi::spar_rust_mpi_eye_tracker(input_video, nthreads)?,
+        "mpi" => mpi::mpi_eye_tracker(input_video, nthreads)?,
         _ => println!(
             "Invalid run_mode, use (seq | rust-ssp | tokio | std-threads | better | spar-rust)"
         ),

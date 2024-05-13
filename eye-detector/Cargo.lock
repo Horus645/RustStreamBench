@@ -326,12 +326,14 @@ dependencies = [
 name = "eye-detector"
 version = "0.1.0"
 dependencies = [
+ "bincode",
  "crossbeam-channel 0.5.12",
  "crossbeam-utils 0.8.19",
  "futures 0.3.30",
  "opencv",
  "pipeliner",
  "rust-spp 0.1.0",
+ "serde",
  "spar-rust 0.1.0",
  "spar-rust-v2",
  "tokio 1.36.0",
