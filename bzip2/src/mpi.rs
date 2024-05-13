@@ -5,7 +5,10 @@ use std::io::{prelude::*, BufWriter};
 use std::mem;
 use std::time::SystemTime;
 
-use mpi::traits::{Communicator, Destination, Source};
+use spar_rust_v2::mpi::{
+    self,
+    traits::{Communicator, Destination, Source},
+};
 
 use crate::BLOCK_SIZE;
 

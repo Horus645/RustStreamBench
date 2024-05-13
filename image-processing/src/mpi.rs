@@ -2,7 +2,7 @@ use raster::filter;
 use serde::{de::Visitor, ser::SerializeStruct, Deserialize, Serialize};
 use std::time::SystemTime;
 
-use mpi::{
+use spar_rust_v2::mpi::{
     self,
     traits::{Communicator, Destination, Source},
 };

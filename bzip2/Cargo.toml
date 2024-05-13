@@ -40,5 +40,7 @@ rayon = "1.7"
 # Pipeliner
 pipeliner = "1.0.1"
 
-# mpi
-mpi = "0.7"
+[features]
+default = [ "multithreaded", "mpi" ]
+multithreaded = []
+mpi = []
