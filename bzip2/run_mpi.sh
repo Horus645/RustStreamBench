@@ -2,6 +2,7 @@
 
 if [ $# -lt 3 ]; then
 	echo "usage: $0 <inputs directory> <maximum number of workers (power of two)> "
+	exit 1
 fi
 
 RUNTIMES="mpi" "spar-rust-mpi"
