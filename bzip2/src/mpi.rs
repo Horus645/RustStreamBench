@@ -16,6 +16,7 @@ pub fn rsmpi(threads: usize, file_action: &str, file_name: &str) {
     let mut file = File::open(file_name).expect("No file found.");
     let mut buffer_input = Vec::with_capacity(1 << 10);
     file.read_to_end(&mut buffer_input).unwrap();
+    let threads = threads + 1;
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
@@ -28,7 +29,6 @@ pub fn rsmpi(threads: usize, file_action: &str, file_name: &str) {
             .expect("failed to initialize mpi");
         let world = universe.world();
         let size = world.size() as usize;
-        let threads = threads + 1;
 
         if size < threads {
             panic!("trying to execute with {threads} workers, but only have {size}");
@@ -316,6 +316,7 @@ pub fn rsmpi_io(threads: usize, file_action: &str, file_name: &str) {
     let mut file = File::open(file_name).expect("No file found.");
     let mut buffer_input = Vec::with_capacity(1 << 10);
     file.read_to_end(&mut buffer_input).unwrap();
+    let threads = threads + 1;
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
