@@ -1,11 +1,11 @@
 #!/bin/sh
 
 if [ $# -lt 3 ]; then
-	echo "usage: $0 <inputs directory> <maximum number of workers (power of two)> "
+	echo "usage: $0 <inputs directory> <maximum number of workers> "
 	exit 1
 fi
 
-RUNTIMES="mpi" "spar-rust-mpi"
+RUNTIMES="mpi spar-rust-mpi"
 WORKERS=$2
 INPUTS=$(find "$1" -type f)
 
