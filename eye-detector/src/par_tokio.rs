@@ -63,7 +63,7 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
         .map(move |in_data: MatData| {
             spawn_return!({
                 let face_xml =
-                    core::find_file(unsafe { &super::FACE_XML_STR }, true, false).unwrap();
+                    core::find_file(unsafe { super::FACE_XML_STR.as_str() }, true, false).unwrap();
                 let mut face_detector = objdetect::CascadeClassifier::new(&face_xml).unwrap();
 
                 let equalized = common::prepare_frame(&in_data.frame).unwrap();
@@ -82,12 +82,15 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
         .map(move |in_data| {
             let mut in_data = in_data.unwrap();
             spawn_return!({
-                let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false).unwrap();
+                let eye_xml =
+                    core::find_file(unsafe { super::EYE_XML_STR.as_str() }, true, false).unwrap();
                 let mut eye_detector = objdetect::CascadeClassifier::new(&eye_xml).unwrap();
 
                 for face in in_data.faces {
                     let eyes = common::detect_eyes(
-                        &core::Mat::roi(&in_data.equalized, face).unwrap(),
+                        &core::Mat::roi(&in_data.equalized, face)
+                            .unwrap()
+                            .clone_pointee(),
                         &mut eye_detector,
                     )
                     .unwrap();

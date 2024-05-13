@@ -152,7 +152,7 @@ impl BetterCrossbeam {
                     return Some(content);
                 }
 
-                Err(e) if e == TryRecvError::Empty => {
+                Err(TryRecvError::Empty) => {
                     let mut t_handle = self.blocked_by_empty.write().unwrap();
                     t_handle[t_id].is_parked = true;
                     drop(t_handle);
@@ -166,8 +166,7 @@ impl BetterCrossbeam {
                     continue;
                 }
 
-                Err(e) if e == TryRecvError::Disconnected => return None,
-                Err(e) => panic!("Error during recv {e}"),
+                Err(TryRecvError::Disconnected) => return None,
             }
         }
     }
@@ -249,7 +248,7 @@ pub fn better_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result
                     None => break,
                 };
                 let face_xml =
-                    core::find_file(unsafe { &super::FACE_XML_STR }, true, false).unwrap();
+                    core::find_file(unsafe { super::FACE_XML_STR.as_str() }, true, false).unwrap();
                 let mut face_detector = objdetect::CascadeClassifier::new(&face_xml).unwrap();
 
                 let equalized = common::prepare_frame(&content.frame).unwrap();
@@ -291,12 +290,13 @@ pub fn better_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result
                     Some(ref x) => x,
                     None => panic!("Empty value inside stream!"),
                 };
-                let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false).unwrap();
+                let eye_xml =
+                    core::find_file(unsafe { super::EYE_XML_STR.as_str() }, true, false).unwrap();
                 let mut eye_detector = objdetect::CascadeClassifier::new(&eye_xml).unwrap();
 
                 for face in faces {
                     let eyes = common::detect_eyes(
-                        &core::Mat::roi(equalized, face).unwrap(),
+                        &core::Mat::roi(equalized, face).unwrap().clone_pointee(),
                         &mut eye_detector,
                     )
                     .unwrap();

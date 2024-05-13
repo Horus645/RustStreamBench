@@ -11,7 +11,7 @@ readme = "README.md"
 
 [dependencies]
 # Core
-opencv = { version = "0.70" }
+opencv = { version = "0.91", features = ["clang-runtime" ]}
 
 # Rust-SSP
 rust-spp = { path = "../libs/rust-ssp" }

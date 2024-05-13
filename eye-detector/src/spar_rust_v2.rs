@@ -9,9 +9,9 @@ struct MatData {
 unsafe impl Sync for MatData {}
 unsafe impl Send for MatData {}
 
-impl Debug for MatData {
+impl std::fmt::Debug for MatData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        f.write_fmt(format_args!("mat pointer: {:?}", self.frame.as_raw()))
     }
 }
 
@@ -64,7 +64,7 @@ fn stage3(eyes_data: EyesData, eye_xml: String) -> MatData {
     } = eyes_data;
     for face in faces {
         let eyes = common::detect_eyes(
-            &core::Mat::roi(&equalized, face).unwrap(),
+            &core::Mat::roi(&equalized, face).unwrap().clone_pointee(),
             &mut eyes_detector,
         )
         .unwrap();
@@ -97,8 +97,8 @@ pub fn spar_rust_v2_eye_tracker(input_video: &String, nthreads: i32) -> opencv::
     }
 
     //"haarcascade_frontalface_alt.xml".to_owned()
-    let face_xml = core::find_file(unsafe { &super::FACE_XML_STR }, true, false)?;
-    let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false)?;
+    let face_xml = core::find_file(unsafe { super::FACE_XML_STR.as_str() }, true, false)?;
+    let eye_xml = core::find_file(unsafe { super::EYE_XML_STR.as_str() }, true, false)?;
 
     let out: Vec<MatData> = to_stream!(multithreaded: [
         source(video_in),
@@ -107,6 +107,7 @@ pub fn spar_rust_v2_eye_tracker(input_video: &String, nthreads: i32) -> opencv::
         (stage3(eye_xml), nthreads as usize ),
         sink,
     ])
+    .0
     .collect();
 
     for frame in out {

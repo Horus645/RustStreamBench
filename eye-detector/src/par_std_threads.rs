@@ -105,12 +105,11 @@ pub fn std_threads_eye_tracker(input_video: &String, nthreads: i32) -> opencv::R
                 let content = recv.try_recv();
                 let mut content = match content {
                     Ok(content) => content,
-                    Err(e) if e == TryRecvError::Disconnected => break,
-                    Err(e) if e == TryRecvError::Empty => continue,
-                    Err(e) => panic!("Error during recv {e}"),
+                    Err(TryRecvError::Disconnected) => break,
+                    Err(TryRecvError::Empty) => continue,
                 };
                 let face_xml =
-                    core::find_file(unsafe { &super::FACE_XML_STR }, true, false).unwrap();
+                    core::find_file(unsafe { super::FACE_XML_STR.as_str() }, true, false).unwrap();
                 let mut face_detector = objdetect::CascadeClassifier::new(&face_xml).unwrap();
 
                 let equalized = common::prepare_frame(&content.frame).unwrap();
@@ -136,9 +135,8 @@ pub fn std_threads_eye_tracker(input_video: &String, nthreads: i32) -> opencv::R
             let content = recv.try_recv();
             let mut content = match content {
                 Ok(content) => content,
-                Err(e) if e == TryRecvError::Disconnected => break,
-                Err(e) if e == TryRecvError::Empty => continue,
-                Err(e) => panic!("Error during recv {e}"),
+                Err(TryRecvError::Disconnected) => break,
+                Err(TryRecvError::Empty) => continue,
             };
             let equalized = match content.equalized {
                 Some(ref x) => x,
@@ -148,12 +146,13 @@ pub fn std_threads_eye_tracker(input_video: &String, nthreads: i32) -> opencv::R
                 Some(ref x) => x,
                 None => panic!("Empty value inside stream!"),
             };
-            let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false).unwrap();
+            let eye_xml =
+                core::find_file(unsafe { super::EYE_XML_STR.as_str() }, true, false).unwrap();
             let mut eye_detector = objdetect::CascadeClassifier::new(&eye_xml).unwrap();
 
             for face in faces {
                 let eyes = common::detect_eyes(
-                    &core::Mat::roi(equalized, face).unwrap(),
+                    &core::Mat::roi(equalized, face).unwrap().clone_pointee(),
                     &mut eye_detector,
                 )
                 .unwrap();
@@ -176,9 +175,8 @@ pub fn std_threads_eye_tracker(input_video: &String, nthreads: i32) -> opencv::R
             let content = recv.try_recv();
             let mut content = match content {
                 Ok(content) => content,
-                Err(e) if e == TryRecvError::Disconnected => break,
-                Err(e) if e == TryRecvError::Empty => continue,
-                Err(e) => panic!("Error during recv {e}"),
+                Err(TryRecvError::Disconnected) => break,
+                Err(TryRecvError::Empty) => continue,
             };
             loop {
                 if content.order != expected_ordered {

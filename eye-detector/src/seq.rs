@@ -20,8 +20,8 @@ pub fn seq_eye_tracker(input_video: &String) -> opencv::Result<()> {
         panic!("Unable to open output video output.avi!");
     }
 
-    let face_xml = core::find_file(unsafe { &super::FACE_XML_STR }, true, false)?;
-    let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false)?;
+    let face_xml = core::find_file(unsafe { super::FACE_XML_STR.as_str() }, true, false)?;
+    let eye_xml = core::find_file(unsafe { super::EYE_XML_STR.as_str() }, true, false)?;
     let mut face_detector = objdetect::CascadeClassifier::new(&face_xml)?;
     let mut eyes_detector = objdetect::CascadeClassifier::new(&eye_xml)?;
 
@@ -40,7 +40,10 @@ pub fn seq_eye_tracker(input_video: &String) -> opencv::Result<()> {
         let faces = common::detect_faces(&equalized, &mut face_detector)?;
 
         for face in faces {
-            let eyes = common::detect_eyes(&core::Mat::roi(&equalized, face)?, &mut eyes_detector)?;
+            let eyes = common::detect_eyes(
+                &core::Mat::roi(&equalized, face).unwrap().clone_pointee(),
+                &mut eyes_detector,
+            )?;
 
             common::draw_in_frame(&mut frame, &eyes, &face)?;
         }

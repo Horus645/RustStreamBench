@@ -36,8 +36,8 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
     }
 
     //"haarcascade_frontalface_alt.xml".to_owned()
-    let face_xml = core::find_file(unsafe { &super::FACE_XML_STR }, true, false)?;
-    let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false)?;
+    let face_xml = core::find_file(unsafe { super::FACE_XML_STR.as_str() }, true, false)?;
+    let eye_xml = core::find_file(unsafe { super::EYE_XML_STR.as_str() }, true, false)?;
 
     let mut out: Vec<MatData> = Vec::new();
     to_stream!(
@@ -95,7 +95,7 @@ pub fn spar_rust_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Res
                         } = eyes_data;
                         for face in faces {
                             let eyes = common::detect_eyes(
-                                &core::Mat::roi(&equalized, face).unwrap(),
+                                &core::Mat::roi(&equalized, face).unwrap().clone_pointee(),
                                 &mut eyes_detector,
                             )
                             .unwrap();

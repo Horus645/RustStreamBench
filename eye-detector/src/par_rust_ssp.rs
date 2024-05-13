@@ -24,7 +24,8 @@ struct DetectFaces {
 }
 impl DetectFaces {
     fn new() -> DetectFaces {
-        let face_xml = core::find_file(unsafe { &super::FACE_XML_STR }, true, false).unwrap();
+        let face_xml =
+            core::find_file(unsafe { super::FACE_XML_STR.as_str() }, true, false).unwrap();
         let face_detector = objdetect::CascadeClassifier::new(&face_xml).unwrap();
         DetectFaces { face_detector }
     }
@@ -51,7 +52,7 @@ struct DetectEyes {
 }
 impl DetectEyes {
     fn new() -> DetectEyes {
-        let eye_xml = core::find_file(unsafe { &super::EYE_XML_STR }, true, false).unwrap();
+        let eye_xml = core::find_file(unsafe { super::EYE_XML_STR.as_str() }, true, false).unwrap();
         let eye_detector = objdetect::CascadeClassifier::new(&eye_xml).unwrap();
         DetectEyes { eye_detector }
     }
@@ -60,7 +61,9 @@ impl InOut<EyesData, MatData> for DetectEyes {
     fn process(&mut self, mut in_data: EyesData) -> Option<MatData> {
         for face in in_data.faces {
             let eyes = common::detect_eyes(
-                &core::Mat::roi(&in_data.equalized, face).unwrap(),
+                &core::Mat::roi(&in_data.equalized, face)
+                    .unwrap()
+                    .clone_pointee(),
                 &mut self.eye_detector,
             )
             .unwrap();
