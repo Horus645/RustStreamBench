@@ -26,8 +26,9 @@ for _ in $(seq 1 $REPETITIONS); do
 				LOG_DECOMPRESS="${LOG_DIR}/${runtime}/${input}/decompress/"
 				mkdir -p "$LOG_DECOMPRESS"
 
-				mpirun -n "$workers" --oversubscribe ./target/release/bzip2 "$runtime" $threads compress "$input" >> "${LOG_COMPRESS}/${workers}"
-				mpirun -n "$workers" --oversubscribe ./target/release/bzip2 "$runtime" $threads decompress "$input".bz2 >> "${LOG_DECOMPRESS}/${workers}"
+				echo "Running $input with $runtime - $workers"
+				mpirun -n "$workers" --oversubscribe ./target/release/bzip2 "$runtime" $threads compress "$input" | tee -a "${LOG_COMPRESS}/${workers}"
+				mpirun -n "$workers" --oversubscribe ./target/release/bzip2 "$runtime" $threads decompress "$input".bz2 | tee -a "${LOG_DECOMPRESS}/${workers}"
 			done
 		done
 	done
