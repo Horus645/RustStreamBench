@@ -146,7 +146,7 @@ pub fn rsmpi(dir_name: &str, threads: usize) {
 
         let recver = world.any_process();
         let sender = mpi::topology::SimpleCommunicator::world();
-        let mut target = begin;
+        let mut target = (rank as usize % (1 + end - begin)) + begin;
         let mut zeros = 1;
         while zeros > 0 {
             let (size, status) = recver.receive::<u32>();
@@ -185,7 +185,7 @@ pub fn rsmpi(dir_name: &str, threads: usize) {
 
         let recver = world.any_process();
         let sender = mpi::topology::SimpleCommunicator::world();
-        let mut target = begin;
+        let mut target = (rank as usize % (1 + end - begin)) + begin;
         let mut zeros = threads / 5;
         while zeros > 0 {
             let (size, status) = recver.receive::<u32>();
@@ -224,7 +224,7 @@ pub fn rsmpi(dir_name: &str, threads: usize) {
 
         let recver = world.any_process();
         let sender = mpi::topology::SimpleCommunicator::world();
-        let mut target = begin;
+        let mut target = (rank as usize % (1 + end - begin)) + begin;
         let mut zeros = threads / 5;
         while zeros > 0 {
             let (size, status) = recver.receive::<u32>();
@@ -263,7 +263,7 @@ pub fn rsmpi(dir_name: &str, threads: usize) {
 
         let recver = world.any_process();
         let sender = mpi::topology::SimpleCommunicator::world();
-        let mut target = begin;
+        let mut target = (rank as usize % (1 + end - begin)) + begin;
         let mut zeros = threads / 5;
         while zeros > 0 {
             let (size, status) = recver.receive::<u32>();

@@ -114,7 +114,7 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
         let end = 2 * (threads / 2);
         let recver = world.any_process();
         let sender = mpi::topology::SimpleCommunicator::world();
-        let mut target = begin;
+        let mut target = (rank as usize % (1 + end - begin)) + begin;
         let mut zeros = 1;
         while zeros > 0 {
             let (size, status) = recver.receive::<u32>();
