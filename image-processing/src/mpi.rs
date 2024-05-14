@@ -115,7 +115,7 @@ pub fn rsmpi(dir_name: &str, threads: usize) {
                 target.send(&bytes);
 
                 target_rank += 1;
-                if target_rank as usize >= threads / 5 {
+                if target_rank as usize > threads / 5 {
                     target_rank = 1;
                 }
             }

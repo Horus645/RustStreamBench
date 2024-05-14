@@ -209,7 +209,7 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
                 sequence_number += 1;
 
                 target_rank += 1;
-                if target_rank as usize >= threads / 3 {
+                if target_rank as usize > threads / 3 {
                     target_rank = 1;
                 }
             }

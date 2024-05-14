@@ -59,7 +59,7 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
                 sequence_number += 1;
 
                 target_rank += 1;
-                if target_rank as usize >= threads / 2 {
+                if target_rank as usize > threads / 2 {
                     target_rank = 1;
                 }
             }
