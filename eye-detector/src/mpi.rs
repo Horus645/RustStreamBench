@@ -1,3 +1,5 @@
+use std::{cmp::Reverse, collections::BinaryHeap};
+
 use super::common;
 use opencv::{
     core,
@@ -33,6 +35,25 @@ impl Serialize for MatData {
     }
 }
 
+impl PartialEq for MatData {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+impl std::cmp::Eq for MatData {}
+impl std::cmp::PartialOrd for MatData {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for MatData {
+    fn cmp(&self, _other: &Self) -> std::cmp::Ordering {
+        std::cmp::Ordering::Equal
+    }
+}
+
 impl<'de> Deserialize<'de> for MatData {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -53,7 +74,7 @@ impl<'de> Deserialize<'de> for MatData {
             {
                 let bytes: &[u8] = seq.next_element()?.unwrap();
                 let bmp_buf = core::Vector::from_slice(bytes);
-                Ok(MatData(imdecode(&bmp_buf, 0).unwrap()))
+                Ok(MatData(imdecode(&bmp_buf, opencv::imgcodecs::IMREAD_COLOR).unwrap()))
             }
         }
         deserializer.deserialize_struct("MatData", &["frame"], MatDataVisitor)
@@ -167,6 +188,7 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
 
     if rank == 0 {
         std::thread::spawn(move || {
+            let mut sequence_number = 0u32;
             let comm = mpi::topology::SimpleCommunicator::world();
             let mut target_rank = 1;
             loop {
@@ -183,6 +205,8 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
                 let target = comm.process_at_rank(target_rank);
                 target.send(&size.to_ne_bytes());
                 target.send(&bytes);
+                target.send(&sequence_number);
+                sequence_number += 1;
 
                 target_rank += 1;
                 if target_rank as usize >= threads / 3 {
@@ -198,6 +222,8 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
         let mut out = Vec::new();
         let mut zeros = threads / 3;
         let recver = world.any_process();
+        let mut out_of_order = BinaryHeap::new();
+        let mut cur_order = 0;
         while zeros > 0 {
             let (size, status) = recver.receive::<u32>();
             if size == 0 {
@@ -208,8 +234,25 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
+            let (sequence_number, _status) =
+                world.process_at_rank(status.source_rank()).receive::<u32>();
+
             let frame: MatData = bincode::deserialize(&buf).unwrap();
-            out.push(frame);
+            if cur_order == sequence_number {
+                cur_order += 1;
+                out.push(frame);
+            } else {
+                out_of_order.push(Reverse((sequence_number, frame)));
+                while let Some(Reverse((i, b))) = out_of_order.pop() {
+                    if i == cur_order {
+                        cur_order += 1;
+                        out.push(b);
+                        continue;
+                    }
+                    out_of_order.push(Reverse((i, b)));
+                    break;
+                }
+            }
         }
 
         for frame in out {
@@ -221,7 +264,7 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
         let begin = 1 + (threads / 3);
         let end = 2 * (threads / 3);
 
-        let mut target = begin;
+        let mut target = (rank as usize % (1 + end - begin)) + begin;
         let mut zeros = threads / 3;
         let recver = world.any_process();
         let sender = mpi::topology::SimpleCommunicator::world();
@@ -235,6 +278,8 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
+            let (sequence_number, _status) =
+                world.process_at_rank(status.source_rank()).receive::<u32>();
 
             let frame: MatData = bincode::deserialize(&buf).unwrap();
             let equalized = MatData(common::prepare_frame(&frame.0).unwrap());
@@ -245,6 +290,7 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
                 let target = sender.process_at_rank(target as i32);
                 target.send(&size.to_ne_bytes());
                 target.send(&bytes);
+                target.send(&sequence_number);
             }
 
             target += 1;
@@ -261,7 +307,7 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
         let begin = 1 + 2 * (threads / 3);
         let end = 3 * (threads / 3);
 
-        let mut target = begin;
+        let mut target = (rank as usize % (1 + end - begin)) + begin;
         let mut zeros = threads / 3;
         let recver = world.any_process();
         let sender = mpi::topology::SimpleCommunicator::world();
@@ -275,6 +321,8 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
+            let (sequence_number, _status) =
+                world.process_at_rank(status.source_rank()).receive::<u32>();
             let (frame, equalized): (MatData, MatData) = bincode::deserialize(&buf).unwrap();
             let mut face_detector =
                 objdetect::CascadeClassifier::new(face_xml.clone().as_str()).unwrap();
@@ -291,6 +339,7 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
                 let target = sender.process_at_rank(target as i32);
                 target.send(&size.to_ne_bytes());
                 target.send(&bytes);
+                target.send(&sequence_number);
             }
 
             target += 1;
@@ -318,6 +367,8 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
+            let (sequence_number, _status) =
+                world.process_at_rank(status.source_rank()).receive::<u32>();
 
             let eyes_data: EyesData = bincode::deserialize(&buf).unwrap();
             let mut eyes_detector =
@@ -345,6 +396,7 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
                 let target = sender.process_at_rank(target);
                 target.send(&size.to_ne_bytes());
                 target.send(&bytes);
+                target.send(&sequence_number);
             }
         }
         let target = sender.process_at_rank(target);
