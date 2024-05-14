@@ -12,9 +12,14 @@ WORKERS=$2
 INPUTS=$(find "$1" -type f)
 
 LOG_DIR="log-$(date '+%Y-%m-%d_%H:%M:%S:%N')"
+LOG_FILE="$LOG_DIR/log"
 
 cargo build --release
 mkdir "$LOG_DIR"
+
+log() {
+	printf "%s - %s\n" "$(date '+%Y-%m-%d|%H:%M:%S:%N')" "$1" | tee -a "$LOG_FILE"
+}
 
 REPETITIONS=10
 for _ in $(seq 1 $REPETITIONS); do
@@ -28,9 +33,9 @@ for _ in $(seq 1 $REPETITIONS); do
 				LOG_DECOMPRESS="${LOG_DIR}/${runtime}/$(basename "$input")/decompress/"
 				mkdir -p "$LOG_DECOMPRESS"
 
-				echo "Running $input compression with $runtime - $workers"
+				log "Running $input compression with $runtime - $workers"
 				mpirun -n "$workers" --oversubscribe ./target/release/bzip2 "$runtime" $threads compress "$input" | tee -a "${LOG_COMPRESS}/${workers}"
-				echo "Running ${input}.bz decompression with $runtime - $workers"
+				log "Running ${input}.bz decompression with $runtime - $workers"
 				mpirun -n "$workers" --oversubscribe ./target/release/bzip2 "$runtime" $threads decompress "$input".bz2 | tee -a "${LOG_DECOMPRESS}/${workers}"
 			done
 		done
