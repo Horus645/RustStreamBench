@@ -1,6 +1,7 @@
-use std::fs::File;
+use std::cmp::Reverse;
 use std::io::Write;
 use std::time::SystemTime;
+use std::{collections::BinaryHeap, fs::File};
 
 use serde::{Deserialize, Serialize};
 use spar_rust_v2::mpi::{
@@ -37,8 +38,10 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
 
     if rank == 0 {
         std::thread::spawn(move || {
+            let mut sequence_number = 0u32;
             let comm = mpi::topology::SimpleCommunicator::world();
             let mut target_rank = 1;
+            #[allow(clippy::explicit_counter_loop)]
             for i in 0..size {
                 let content = Tcontent {
                     line: i as i64,
@@ -52,6 +55,8 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
                 let target = comm.process_at_rank(target_rank);
                 target.send(&size.to_ne_bytes());
                 target.send(&bytes);
+                target.send(&sequence_number);
+                sequence_number += 1;
 
                 target_rank += 1;
                 if target_rank as usize >= threads / 2 {
@@ -66,13 +71,35 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
 
         let mut output = Vec::new();
         let comm = world.any_process();
+        let mut out_of_order = BinaryHeap::new();
+        let mut cur_order = 0;
         for _ in 0..size {
             let (size, status) = comm.receive::<u32>();
             let mut buf = vec![0u8; size as usize];
-            let _status = world
+            let status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
-            output.extend(&buf);
+            let (sequence_number, _status) =
+                world.process_at_rank(status.source_rank()).receive::<u32>();
+
+            if cur_order == sequence_number {
+                cur_order += 1;
+                output.extend_from_slice(&buf[..]);
+            } else {
+                out_of_order.push(Reverse((sequence_number, buf)));
+                while let Some(Reverse((i, b))) = out_of_order.pop() {
+                    if i == cur_order {
+                        cur_order += 1;
+                        output.extend_from_slice(&b[..]);
+                        continue;
+                    }
+                    out_of_order.push(Reverse((i, b)));
+                    break;
+                }
+            }
+        }
+        while let Some(Reverse((_, b))) = out_of_order.pop() {
+            output.extend_from_slice(&b[..]);
         }
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
@@ -99,6 +126,8 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
+            let (sequence_number, _status) =
+                world.process_at_rank(status.source_rank()).receive::<u32>();
             let mut content: Tcontent = bincode::deserialize(&buf).unwrap();
 
             let size = content.line_buffer.len();
@@ -137,6 +166,7 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
                 let target = sender.process_at_rank(target as i32);
                 target.send(&size.to_ne_bytes());
                 target.send(&bytes);
+                target.send(&sequence_number);
             }
 
             target += 1;
@@ -164,6 +194,8 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
+            let (sequence_number, _status) =
+                world.process_at_rank(status.source_rank()).receive::<u32>();
             let mut content: Tcontent = bincode::deserialize(&buf).unwrap();
 
             let size = content.line_buffer.len();
@@ -199,6 +231,7 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
                 let target = sender.process_at_rank(target);
                 target.send(&size.to_ne_bytes());
                 target.send(&bytes);
+                target.send(&sequence_number);
             }
         }
     }

@@ -1,6 +1,6 @@
 #!/bin/sh
 
-if [ $# -lt 2 ]; then
+if [ $# -lt 1 ]; then
 	echo "usage: $0 <maximum number of workers> "
 	exit 1
 fi
@@ -8,16 +8,16 @@ fi
 set -e
 
 RUNTIMES="mpi spar-rust-mpi"
-WORKERS=$2
-MD=1048576 # 2 ^ 20
+WORKERS=$1
+MD=65536 # 2 ^ 16
 ITER1=5000
 ITER2=4000
 
 
 LOG_DIR="log-$(date '+%Y-%m-%d_%H:%M:%S:%N')"
-LOG_FILE="$LOG_DIR/log"
+LOG_FILE="${LOG_DIR}/log"
 
-cargo build --release
+cargo build --release --quiet
 mkdir "$LOG_DIR"
 
 log() {
