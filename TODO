@@ -1,6 +1,1 @@
-RUN bzip rust-ssp-io
-RERUN bzip spar-rust and spar-rust-io
-
-RERUN micro-bench spar-rust
-
-CREATE 'ORDERED' propriety
+Order micro-bench/mpi.rs
