@@ -9,9 +9,9 @@ set -e
 
 RUNTIMES="mpi spar-rust-mpi"
 WORKERS=$1
-MD=8192 # 2 ^ 13
-ITER1=5000
-ITER2=4000
+MD=4096 # 2 ^ 12
+ITER1=4000
+ITER2=3000
 
 
 LOG_DIR="log-$(date '+%Y-%m-%d_%H:%M:%S:%N')"
