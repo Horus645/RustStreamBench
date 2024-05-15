@@ -28,7 +28,7 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
     let threads = 1 + threads * 2;
 
     if world_size < threads {
-        panic!("trying to execute with {threads} workers, but only have {size}");
+        panic!("trying to execute with {threads} workers, but only have {world_size}");
     }
 
     let rank = world.rank();

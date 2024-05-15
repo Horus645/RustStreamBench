@@ -11,8 +11,7 @@ mod mpi;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    if args.len() < 5 {
-        println!();
+    if args.len() < 6 {
         panic!(
             "Correct usage: $ ./{:?} <runtime> <img size> <nthreads> <iter size 1> <iter size 2>",
             args[0]

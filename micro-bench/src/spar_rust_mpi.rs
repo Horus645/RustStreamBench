@@ -3,7 +3,7 @@ use std::io::Write;
 use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
-use spar_rust_v2::{mpi, to_stream};
+use spar_rust_v2::to_stream;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Tcontent {
