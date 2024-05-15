@@ -9,7 +9,6 @@ set -e
 
 RUNTIMES="mpi spar-rust-mpi"
 WORKERS=$2
-INPUTS=$(find "$1" -type f)
 
 LOG_DIR="log-$(date '+%Y-%m-%d_%H:%M:%S:%N')"
 LOG_FILE="$LOG_DIR/log"
@@ -25,7 +24,7 @@ REPETITIONS=5
 for _ in $(seq 1 $REPETITIONS); do
 	workers="$WORKERS"
 	while [ "$workers" -ge 6 ]; do 
-		for input in $INPUTS; do 
+		for input in "$1"/*; do 
 			threads=$(((workers - 1) / 5))
 			for runtime in $RUNTIMES; do
 				LOG="${LOG_DIR}/${runtime}/$(basename "$input")/"
