@@ -35,14 +35,6 @@ impl<'de> Deserialize<'de> for Image {
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Deserialize)]
-        #[serde(field_identifier, rename_all = "lowercase")]
-        enum Filed {
-            Width,
-            Height,
-            Bytes,
-        }
-
         struct ImageVisitor;
 
         impl<'de> Visitor<'de> for ImageVisitor {
