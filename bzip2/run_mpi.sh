@@ -21,7 +21,7 @@ log() {
 	printf "%s - %s\n" "$(date '+%Y-%m-%d|%H:%M:%S:%N')" "$1" | tee -a "$LOG_FILE"
 }
 
-REPETITIONS=10
+REPETITIONS=5
 for _ in $(seq 1 $REPETITIONS); do
 	workers="$WORKERS"
 	while [ "$workers" -ge 2 ]; do 

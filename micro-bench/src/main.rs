@@ -24,6 +24,7 @@ fn main() {
     let iter_size1 = args[4].parse::<i32>().unwrap();
     let iter_size2 = args[5].parse::<i32>().unwrap();
 
+    assert!(threads > 0);
     match runtime.as_str() {
         "sequential" => sequential::sequential(size, iter_size1, iter_size2),
         #[cfg(feature = "multithreaded")]

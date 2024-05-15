@@ -24,11 +24,14 @@ log() {
 	printf "%s - %s\n" "$(date '+%Y-%m-%d|%H:%M:%S:%N')" "$1" | tee -a "$LOG_FILE"
 }
 
-REPETITIONS=10
+REPETITIONS=5
 for _ in $(seq 1 $REPETITIONS); do
 	workers="$WORKERS"
 	while [ "$workers" -ge 3 ]; do 
-		threads=$(((workers >> 1) - 1))
+		threads=$(((workers / 2) - 1))
+		if [ $threads -eq 0 ]; then
+			threads=1;
+		fi
 		for runtime in $RUNTIMES; do
 			LOG_TIME="${LOG_DIR}/${runtime}/${MD}-${ITER1}-${ITER2}"
 			mkdir -p "$LOG_TIME"
