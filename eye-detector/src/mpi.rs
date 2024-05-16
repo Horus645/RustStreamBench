@@ -259,6 +259,10 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
             }
         }
 
+        while let Some(Reverse((_, b))) = out_of_order.pop() {
+            out.push(b);
+        }
+
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
             system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
@@ -272,7 +276,7 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
         let end = 2 * (threads / 3);
 
         let mut target = (rank as usize % (1 + end - begin)) + begin;
-        let mut zeros = threads / 3;
+        let mut zeros = 1;
         let recver = world.any_process();
         let sender = mpi::topology::SimpleCommunicator::world();
         while zeros > 0 {
