@@ -119,8 +119,13 @@ pub fn rsmpi(dir_name: &str, threads: usize) {
 
         let mut sink: Vec<Image> = Vec::with_capacity(len);
         let comm = world.any_process();
-        for _ in 0..len {
+        let mut zeros = threads / 5;
+        while zeros > 0 {
             let (size, status) = comm.receive::<u32>();
+            if size == 0 {
+                zeros -= 1;
+                continue;
+            }
             let mut buf = vec![0u8; size as usize];
             let _status = world
                 .process_at_rank(status.source_rank())
@@ -314,5 +319,8 @@ pub fn rsmpi(dir_name: &str, threads: usize) {
                 target.send(&bytes);
             }
         }
+
+        let target = sender.process_at_rank(target);
+        target.send(&0u32);
     }
 }

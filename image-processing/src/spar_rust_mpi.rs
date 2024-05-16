@@ -96,8 +96,8 @@ fn stage5(mut img: Image) -> Image {
 }
 
 #[sink]
-fn sink(_: Image) {
-    // noop
+fn sink(img: Image) -> Image {
+    img
 }
 
 pub fn spar_rust_mpi(dir_name: &str, threads: usize) {
@@ -116,7 +116,7 @@ pub fn spar_rust_mpi(dir_name: &str, threads: usize) {
 
     let start = SystemTime::now();
 
-    let _: Vec<()> = to_stream!(mpi: [
+    let _: Vec<Image> = to_stream!(mpi: [
         source(all_images),
         (stage1(), threads),
         (stage2(), threads),
