@@ -112,6 +112,8 @@ pub fn rust_ssp_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Resu
     );
     let fps_out = video_in.get(videoio::VideoCaptureProperties::CAP_PROP_FPS as i32)?;
 
+    let start = std::time::SystemTime::now();
+
     let mut pipeline = pipeline![
         parallel!(DetectFaces::new(), nthreads),
         parallel!(DetectEyes::new(), nthreads),
@@ -129,6 +131,10 @@ pub fn rust_ssp_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Resu
     }
 
     pipeline.end_and_wait();
+
+    let system_duration = start.elapsed().expect("Failed to get render time?");
+    let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
+    println!("Execution time: {in_sec} sec");
 
     Ok(())
 }

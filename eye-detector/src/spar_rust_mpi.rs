@@ -49,7 +49,9 @@ impl<'de> Deserialize<'de> for MatData {
             {
                 let bytes: &[u8] = seq.next_element()?.unwrap();
                 let bmp_buf = core::Vector::from_slice(bytes);
-                Ok(MatData(imdecode(&bmp_buf, opencv::imgcodecs::IMREAD_COLOR).unwrap()))
+                Ok(MatData(
+                    imdecode(&bmp_buf, opencv::imgcodecs::IMREAD_COLOR).unwrap(),
+                ))
             }
         }
         deserializer.deserialize_struct("MatData", &["frame"], MatDataVisitor)
@@ -201,6 +203,8 @@ pub fn spar_rust_mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv:
     let face_xml = core::find_file(unsafe { super::FACE_XML_STR.as_str() }, true, false)?;
     let eye_xml = core::find_file(unsafe { super::EYE_XML_STR.as_str() }, true, false)?;
 
+    let start = std::time::SystemTime::now();
+
     let out: Vec<MatData> = to_stream!(mpi: [
         source(video_in),
         (stage1(), nthreads as usize ),
@@ -210,6 +214,9 @@ pub fn spar_rust_mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv:
     ])
     .0
     .collect();
+    let system_duration = start.elapsed().expect("Failed to get render time?");
+    let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
+    println!("Execution time: {in_sec} sec");
 
     for frame in out {
         video_out.write(&frame.0).unwrap();

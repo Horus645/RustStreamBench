@@ -20,12 +20,12 @@ pub fn detect_faces(
         40,
         0,
         core::Size {
-            width: frame.size()?.width * 0.06 as i32,
-            height: frame.size()?.height * 0.06 as i32,
+            width: (frame.size()?.width as f32 * 0.06) as i32,
+            height: (frame.size()?.height as f32 * 0.06) as i32,
         },
         core::Size {
-            width: frame.size()?.width * 0.18 as i32,
-            height: frame.size()?.height * 0.18 as i32,
+            width: (frame.size()?.width as f32 * 0.18) as i32,
+            height: (frame.size()?.height as f32 * 0.18) as i32,
         },
     )?;
     Ok(faces)
@@ -43,12 +43,12 @@ pub fn detect_eyes(
         40,
         objdetect::CASCADE_SCALE_IMAGE,
         core::Size {
-            width: frame.size()?.width * 0.06 as i32,
-            height: frame.size()?.height * 0.06 as i32,
+            width: (frame.size()?.width as f32 * 0.06) as i32,
+            height: (frame.size()?.height as f32 * 0.06) as i32,
         },
         core::Size {
-            width: frame.size()?.width * 0.18 as i32,
-            height: frame.size()?.height * 0.18 as i32,
+            width: (frame.size()?.width as f32 * 0.18) as i32,
+            height: (frame.size()?.height as f32 * 0.18) as i32,
         },
     )?;
 

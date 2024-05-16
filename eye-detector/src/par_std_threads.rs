@@ -75,6 +75,8 @@ pub fn std_threads_eye_tracker(input_video: &String, nthreads: i32) -> opencv::R
         panic!("Unable to open output video output.avi!");
     }
 
+    let start = std::time::SystemTime::now();
+
     let stage1_thread = thread::spawn(move || {
         let mut order_id: u64 = 0;
         loop {
@@ -208,6 +210,10 @@ pub fn std_threads_eye_tracker(input_video: &String, nthreads: i32) -> opencv::R
         thread.join().unwrap();
     }
     stage4_thread.join().unwrap();
+
+    let system_duration = start.elapsed().expect("Failed to get render time?");
+    let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
+    println!("Execution time: {in_sec} sec");
 
     Ok(())
 }

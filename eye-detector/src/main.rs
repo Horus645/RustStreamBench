@@ -1,16 +1,16 @@
 use std::path::PathBuf;
 
-use {opencv::core, std::env, std::time::SystemTime};
+use {opencv::core, std::env};
 pub mod common;
+mod mpi;
 mod par_better;
 mod par_rust_ssp;
 mod par_std_threads;
 mod par_tokio;
 mod seq;
 mod spar_rust;
-mod spar_rust_v2;
 mod spar_rust_mpi;
-mod mpi;
+mod spar_rust_v2;
 
 pub static mut FACE_XML_STR: String = String::new();
 pub static mut EYE_XML_STR: String = String::new();
@@ -45,8 +45,6 @@ fn main() -> opencv::Result<()> {
         EYE_XML_STR = dir.to_string_lossy().to_string();
     }
 
-    let start = SystemTime::now();
-
     match run_mode.as_str() {
         "seq" => seq::seq_eye_tracker(input_video)?,
         "rust-ssp" => par_rust_ssp::rust_ssp_eye_tracker(input_video, nthreads)?,
@@ -62,8 +60,5 @@ fn main() -> opencv::Result<()> {
         ),
     }
 
-    let system_duration = start.elapsed().expect("Failed to get render time?");
-    let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
-    println!("Execution time: {in_sec} sec");
     Ok(())
 }

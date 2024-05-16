@@ -47,6 +47,8 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
         panic!("Unable to open output video output.avi!");
     }
 
+    let start = std::time::SystemTime::now();
+
     let processing_stream = stream::poll_fn(move |_| -> Poll<Option<MatData>> {
         // Read frame
         let mut frame = Mat::default();
@@ -108,6 +110,10 @@ pub fn tokio_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<
             video_out.write(&in_data.frame).unwrap();
             futures::future::ready(())
         });
+
+    let system_duration = start.elapsed().expect("Failed to get render time?");
+    let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
+    println!("Execution time: {in_sec} sec");
 
     let runtime = tokio::runtime::Runtime::new().unwrap();
     runtime.block_on(pipeline);

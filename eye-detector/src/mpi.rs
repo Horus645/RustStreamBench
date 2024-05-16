@@ -74,7 +74,9 @@ impl<'de> Deserialize<'de> for MatData {
             {
                 let bytes: &[u8] = seq.next_element()?.unwrap();
                 let bmp_buf = core::Vector::from_slice(bytes);
-                Ok(MatData(imdecode(&bmp_buf, opencv::imgcodecs::IMREAD_COLOR).unwrap()))
+                Ok(MatData(
+                    imdecode(&bmp_buf, opencv::imgcodecs::IMREAD_COLOR).unwrap(),
+                ))
             }
         }
         deserializer.deserialize_struct("MatData", &["frame"], MatDataVisitor)
@@ -171,6 +173,8 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
     let face_xml = core::find_file(unsafe { super::FACE_XML_STR.as_str() }, true, false)?;
     let eye_xml = core::find_file(unsafe { super::EYE_XML_STR.as_str() }, true, false)?;
 
+    let start = std::time::SystemTime::now();
+
     let threads = 1 + nthreads as usize * 3;
     let (universe, _threading) = mpi::initialize_with_threading(mpi::Threading::Multiple).unwrap();
     let world = universe.world();
@@ -255,11 +259,14 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
             }
         }
 
+        let system_duration = start.elapsed().expect("Failed to get render time?");
+        let in_sec =
+            system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
+        println!("Execution time: {in_sec} sec");
+
         for frame in out {
             video_out.write(&frame.0).unwrap();
         }
-
-        return Ok(());
     } else if rank as usize > 0 && rank as usize <= threads / 3 {
         let begin = 1 + (threads / 3);
         let end = 2 * (threads / 3);
@@ -403,6 +410,5 @@ pub fn mpi_eye_tracker(input_video: &String, nthreads: i32) -> opencv::Result<()
         target.send(&0u32.to_ne_bytes());
     }
 
-    drop(universe);
-    std::process::exit(0);
+    Ok(())
 }

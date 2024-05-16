@@ -22,9 +22,13 @@ pub fn seq_eye_tracker(input_video: &String) -> opencv::Result<()> {
 
     let face_xml = core::find_file(unsafe { super::FACE_XML_STR.as_str() }, true, false)?;
     let eye_xml = core::find_file(unsafe { super::EYE_XML_STR.as_str() }, true, false)?;
+
+    let start = std::time::SystemTime::now();
+
     let mut face_detector = objdetect::CascadeClassifier::new(&face_xml)?;
     let mut eyes_detector = objdetect::CascadeClassifier::new(&eye_xml)?;
 
+    let mut out = Vec::new();
     loop {
         // Read frame
         let mut frame = Mat::default();
@@ -47,8 +51,17 @@ pub fn seq_eye_tracker(input_video: &String) -> opencv::Result<()> {
 
             common::draw_in_frame(&mut frame, &eyes, &face)?;
         }
+        out.push(frame);
+    }
+
+    let system_duration = start.elapsed().expect("Failed to get render time?");
+    let in_sec = system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
+    println!("Execution time: {in_sec} sec");
+
+    for frame in out.into_iter() {
         //Write output frame
         video_out.write(&frame)?;
     }
+
     Ok(())
 }
