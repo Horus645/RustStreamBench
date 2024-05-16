@@ -32,7 +32,9 @@ for _ in $(seq 1 $REPETITIONS); do
 				mkdir -p "$LOG"
 
 				log "Running ${input} with $runtime - $workers"
-				mpirun -n "$workers" --oversubscribe ./target/release/eye-detector "$runtime" $threads "$input" | tee -a "${LOG}/${workers}"
+				mpirun -n "$workers" --oversubscribe \
+					./target/release/eye-detector "$runtime" $threads "$input" \
+					| tee -a "${LOG}/${workers}" "$LOG_FILE"
 			done
 		done
 		workers=$((workers >> 1))

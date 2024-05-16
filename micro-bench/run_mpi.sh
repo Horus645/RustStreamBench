@@ -34,7 +34,9 @@ for _ in $(seq 1 $REPETITIONS); do
 			mkdir -p "$LOG_TIME"
 
 			log "Running ${MD}-${ITER1}-${ITER2} with $runtime - $workers"
-			mpirun -n "$workers" --oversubscribe ./target/release/micro-bench "$runtime" $MD $threads $ITER1 $ITER2 | tee -a "${LOG_TIME}/${workers}"
+			mpirun -n "$workers" --oversubscribe \
+				./target/release/micro-bench "$runtime" $MD $threads $ITER1 $ITER2 \
+				| tee -a "${LOG_TIME}/${workers}" "$LOG_FILE"
 		done
 		workers=$((workers >> 1))
 	done
