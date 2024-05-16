@@ -83,6 +83,7 @@ impl Replicate {
         matches!(self, Self::SeqOrdered | Self::SeqUnordered)
     }
 
+    #[allow(dead_code)]
     pub fn is_replicate(&self) -> bool {
         matches!(self, Self::Lit(_) | Self::Var(_))
     }
@@ -137,6 +138,7 @@ pub struct SparStream {
 }
 
 impl SparStream {
+    #[allow(dead_code)]
     pub fn is_external(&self, var: &SparVar) -> bool {
         self.external_vars.contains(var)
     }
