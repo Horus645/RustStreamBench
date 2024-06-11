@@ -116,13 +116,14 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
         let sender = mpi::topology::SimpleCommunicator::world();
         let mut target = (rank as usize % (1 + end - begin)) + begin;
         let mut zeros = 1;
+        let mut buf = Vec::new();
         while zeros > 0 {
             let (size, status) = recver.receive::<u32>();
             if size == 0 {
                 zeros -= 1;
                 continue;
             }
-            let mut buf = vec![0u8; size as usize];
+            buf.resize(size as usize, 0);
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
@@ -184,13 +185,14 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
         let sender = mpi::topology::SimpleCommunicator::world();
         let target = 0;
         let mut zeros = threads / 2;
+        let mut buf = Vec::new();
         while zeros > 0 {
             let (size, status) = recver.receive::<u32>();
             if size == 0 {
                 zeros -= 1;
                 continue;
             }
-            let mut buf = vec![0u8; size as usize];
+            buf.resize(size as usize, 0);
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
