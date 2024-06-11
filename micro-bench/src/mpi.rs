@@ -45,17 +45,16 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             for i in 0..size {
                 let content = Tcontent {
                     line: i as i64,
-                    line_buffer: vec![0; size],
+                    line_buffer: vec![0; size + 4],
                     a_buffer: vec![0.0; size],
                     b_buffer: vec![0.0; size],
                     k_buffer: vec![0; size],
                 };
-                let bytes = bincode::serialize(&content).unwrap();
+                let bytes = bincode::serialize(&(content, sequence_number)).unwrap();
                 let size = bytes.len() as u32;
                 let target = comm.process_at_rank(target_rank);
-                target.send(&size.to_ne_bytes());
+                target.send(&size);
                 target.send(&bytes);
-                target.send(&sequence_number);
                 sequence_number += 1;
 
                 target_rank += 1;
@@ -65,7 +64,7 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             }
             for i in 1..(1 + threads / 2) {
                 let target = comm.process_at_rank(i as i32);
-                target.send(&0u32.to_ne_bytes());
+                target.send(&0u32);
             }
         });
 
@@ -76,21 +75,21 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
         for _ in 0..size {
             let (size, status) = comm.receive::<u32>();
             let mut buf = vec![0u8; size as usize];
-            let status = world
+            let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
-            let (sequence_number, _status) =
-                world.process_at_rank(status.source_rank()).receive::<u32>();
+            let sequence_number =
+                u32::from_ne_bytes(buf[size as usize - 4..size as usize].try_into().unwrap());
 
             if cur_order == sequence_number {
                 cur_order += 1;
-                output.extend_from_slice(&buf[..]);
+                output.extend_from_slice(&buf[0..buf.len() - 4]);
             } else {
                 out_of_order.push(Reverse((sequence_number, buf)));
                 while let Some(Reverse((i, b))) = out_of_order.pop() {
                     if i == cur_order {
                         cur_order += 1;
-                        output.extend_from_slice(&b[..]);
+                        output.extend_from_slice(&b[0..b.len() - 4]);
                         continue;
                     }
                     out_of_order.push(Reverse((i, b)));
@@ -99,7 +98,7 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             }
         }
         while let Some(Reverse((_, b))) = out_of_order.pop() {
-            output.extend_from_slice(&b[..]);
+            output.extend_from_slice(&b[0..b.len() - 4]);
         }
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
@@ -127,11 +126,10 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
-            let (sequence_number, _status) =
-                world.process_at_rank(status.source_rank()).receive::<u32>();
-            let mut content: Tcontent = bincode::deserialize(&buf).unwrap();
+            let (mut content, sequence_number): (Tcontent, u32) =
+                bincode::deserialize(&buf).unwrap();
 
-            let size = content.line_buffer.len();
+            let size = content.line_buffer.len() - 4;
             let init_a = -2.125;
             let init_b = -1.5;
             let range = 3.0;
@@ -162,12 +160,11 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             }
 
             {
-                let bytes = bincode::serialize(&content).unwrap();
+                let bytes = bincode::serialize(&(content, sequence_number)).unwrap();
                 let size = bytes.len() as u32;
                 let target = sender.process_at_rank(target as i32);
-                target.send(&size.to_ne_bytes());
+                target.send(&size);
                 target.send(&bytes);
-                target.send(&sequence_number);
             }
 
             target += 1;
@@ -178,7 +175,7 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
 
         for target in begin..(end + 1) {
             let target = sender.process_at_rank(target as i32);
-            target.send(&0u32.to_ne_bytes());
+            target.send(&0u32);
         }
     } else {
         let recver = world.any_process();
@@ -196,11 +193,10 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
-            let (sequence_number, _status) =
-                world.process_at_rank(status.source_rank()).receive::<u32>();
-            let mut content: Tcontent = bincode::deserialize(&buf).unwrap();
+            let (mut content, sequence_number): (Tcontent, u32) =
+                bincode::deserialize(&buf).unwrap();
 
-            let size = content.line_buffer.len();
+            let size = content.line_buffer.len() - 4;
             let init_a = -2.125;
             let init_b = -1.5;
             let range = 3.0;
@@ -228,12 +224,12 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
             }
 
             {
+                content.line_buffer[size..size + 4].copy_from_slice(&sequence_number.to_ne_bytes());
                 let bytes = content.line_buffer;
                 let size = bytes.len() as u32;
                 let target = sender.process_at_rank(target);
-                target.send(&size.to_ne_bytes());
+                target.send(&size);
                 target.send(&bytes);
-                target.send(&sequence_number);
             }
         }
     }
