@@ -72,9 +72,10 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
         let comm = world.any_process();
         let mut out_of_order = BinaryHeap::new();
         let mut cur_order = 0;
+        let mut buf = Vec::new();
         for _ in 0..size {
             let (size, status) = comm.receive::<u32>();
-            let mut buf = vec![0u8; size as usize];
+            buf.resize(size as usize, 0);
             let _status = world
                 .process_at_rank(status.source_rank())
                 .receive_into(&mut buf);
@@ -85,7 +86,7 @@ pub fn rsmpi_pipeline(size: usize, threads: usize, iter_size1: i32, iter_size2: 
                 cur_order += 1;
                 output.extend_from_slice(&buf[0..buf.len() - 4]);
             } else {
-                out_of_order.push(Reverse((sequence_number, buf)));
+                out_of_order.push(Reverse((sequence_number, buf.clone())));
                 while let Some(Reverse((i, b))) = out_of_order.pop() {
                     if i == cur_order {
                         cur_order += 1;
