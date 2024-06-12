@@ -28,7 +28,7 @@ for _ in $(seq 1 $REPETITIONS); do
 		for input in $INPUTS; do 
 			threads=$(((workers - 1) / 3))
 			for runtime in $RUNTIMES; do
-				LOG="${LOG_DIR}/${runtime}/$(basename -s '.mp4' "$input")/compress/"
+				LOG="${LOG_DIR}/${runtime}/$(basename -s '.mp4' "$input")/"
 				mkdir -p "$LOG"
 
 				log "Running ${input} with $runtime - $workers"
