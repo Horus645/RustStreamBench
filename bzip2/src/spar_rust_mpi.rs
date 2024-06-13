@@ -101,8 +101,7 @@ pub fn spar_rust_mpi(threads: usize, file_action: &str, file_name: &str) {
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
-        let outfile = File::create(compressed_file_name).unwrap();
-        let mut buf_write = BufWriter::new(outfile);
+        let mut outfile = File::create(compressed_file_name).unwrap();
 
         let start = SystemTime::now();
 
@@ -123,13 +122,12 @@ pub fn spar_rust_mpi(threads: usize, file_action: &str, file_name: &str) {
         println!("Execution time: {in_sec} sec");
 
         // write compressed data to file
-        buf_write.write_all(&output).unwrap();
+        outfile.write_all(&output).unwrap();
         std::fs::remove_file(file_name).unwrap();
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
-        let outfile = File::create(decompressed_file_name).unwrap();
-        let mut buf_write = BufWriter::new(outfile);
+        let mut outfile = File::create(decompressed_file_name).unwrap();
 
         // initialization
         let mut pos_init: usize;
@@ -183,7 +181,7 @@ pub fn spar_rust_mpi(threads: usize, file_action: &str, file_name: &str) {
         println!("Execution time: {in_sec} sec");
 
         // write decompressed data to file
-        buf_write.write_all(&output).unwrap();
+        outfile.write_all(&output).unwrap();
         std::fs::remove_file(file_name).unwrap();
     }
 }

@@ -20,8 +20,7 @@ pub fn rsmpi(threads: usize, file_action: &str, file_name: &str) {
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
-        let outfile = File::create(compressed_file_name).unwrap();
-        let mut buf_write = BufWriter::new(outfile);
+        let mut outfile = File::create(compressed_file_name).unwrap();
 
         let start = SystemTime::now();
 
@@ -45,20 +44,13 @@ pub fn rsmpi(threads: usize, file_action: &str, file_name: &str) {
                 let comm = mpi::topology::SimpleCommunicator::world();
                 let mut target_rank = 1;
                 let mut sequence_number = 0u32;
-                let mut pos_init: usize;
-                let mut pos_end = 0;
-                let mut bytes_left = buffer_input.len();
 
-                while bytes_left > 0 {
-                    pos_init = pos_end;
-                    pos_end += if bytes_left < BLOCK_SIZE {
-                        buffer_input.len() - pos_end
+                (0..buffer_input.len()).step_by(BLOCK_SIZE).for_each(|i| {
+                    let buffer_slice = if i + BLOCK_SIZE >= buffer_input.len() {
+                        &buffer_input[i..]
                     } else {
-                        BLOCK_SIZE
+                        &buffer_input[i..i + BLOCK_SIZE]
                     };
-                    bytes_left -= pos_end - pos_init;
-
-                    let buffer_slice = &buffer_input[pos_init..pos_end];
                     let size = buffer_slice.len() as u32;
                     let target = comm.process_at_rank(target_rank);
 
@@ -71,7 +63,7 @@ pub fn rsmpi(threads: usize, file_action: &str, file_name: &str) {
                     if target_rank as usize == threads {
                         target_rank = 1;
                     }
-                }
+                });
 
                 for i in 1..threads {
                     let target = comm.process_at_rank(i as i32);
@@ -119,20 +111,17 @@ pub fn rsmpi(threads: usize, file_action: &str, file_name: &str) {
             println!("Execution time: {in_sec} sec");
 
             // write compressed data to file
-            buf_write.write_all(&output).unwrap();
+            outfile.write_all(&output).unwrap();
         } else {
             loop {
                 let comm = world.process_at_rank(0);
-                let (size, status) = comm.receive::<u32>();
+                let (size, _status) = comm.receive::<u32>();
                 if size == 0 {
                     break;
                 }
                 let mut buf = vec![0u8; size as usize];
-                let status = world
-                    .process_at_rank(status.source_rank())
-                    .receive_into(&mut buf);
-                let (sequence_number, _status) =
-                    world.process_at_rank(status.source_rank()).receive::<u32>();
+                let _status = comm.receive_into(&mut buf);
+                let (sequence_number, _status) = comm.receive::<u32>();
                 unsafe {
                     let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
                     bzip2_sys::BZ2_bzCompressInit(&mut bz_buffer as *mut _, 9, 0, 30);
@@ -156,8 +145,7 @@ pub fn rsmpi(threads: usize, file_action: &str, file_name: &str) {
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
-        let outfile = File::create(decompressed_file_name).unwrap();
-        let mut buf_write = BufWriter::new(outfile);
+        let mut outfile = File::create(decompressed_file_name).unwrap();
 
         // initialization
         let mut pos_init: usize;
@@ -274,21 +262,18 @@ pub fn rsmpi(threads: usize, file_action: &str, file_name: &str) {
                 system_duration.as_secs() as f64 + system_duration.subsec_nanos() as f64 * 1e-9;
             println!("Execution time: {in_sec} sec");
 
-            // write compressed data to file
-            buf_write.write_all(&output).unwrap();
+            // write decompressed data to file
+            outfile.write_all(&output).unwrap();
         } else {
             loop {
                 let comm = world.process_at_rank(0);
-                let (size, status) = comm.receive::<u32>();
+                let (size, _status) = comm.receive::<u32>();
                 if size == 0 {
                     break;
                 }
                 let mut buf = vec![0u8; size as usize];
-                let status = world
-                    .process_at_rank(status.source_rank())
-                    .receive_into(&mut buf);
-                let (sequence_number, _status) =
-                    world.process_at_rank(status.source_rank()).receive::<u32>();
+                let _status = comm.receive_into(&mut buf);
+                let (sequence_number, _status) = comm.receive::<u32>();
                 unsafe {
                     let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
                     bzip2_sys::BZ2_bzDecompressInit(&mut bz_buffer as *mut _, 0, 0);
