@@ -113,6 +113,7 @@ pub fn rsmpi(threads: usize, file_action: &str, file_name: &str) {
             // write compressed data to file
             outfile.write_all(&output).unwrap();
         } else {
+            drop(buffer_input);
             loop {
                 let comm = world.process_at_rank(0);
                 let (size, _status) = comm.receive::<u32>();
