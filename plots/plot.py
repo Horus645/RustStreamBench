@@ -59,60 +59,95 @@ for file in os.listdir(directory):
 graph_data.sort()
 
 plot_data = {}
-plot_data["Our Abstraction"] = ([1], [1], [sequential_stddev])
-plot_data["Raw MPI"] = ([1], [1], [sequential_stddev])
+plot_data["Our Abstraction"] = ([1], [1], [sequential_stddev], [100])
+plot_data["Raw MPI"] = ([1], [1], [sequential_stddev], [100])
 plot_data["Ideal"] = ([1], [1], [sequential_stddev])
 
 for (runtime, thread, mean, stddev) in graph_data:
     plot_data[runtime][0].append(thread)
     plot_data[runtime][1].append(sequential_mean / mean)
     plot_data[runtime][2].append(stddev)
+    plot_data[runtime][3].append(100 * ((sequential_mean / mean) / thread))
 
     if plot_data["Ideal"][0][-1] < thread:
         plot_data["Ideal"][0].append(thread)
         plot_data["Ideal"][1].append(thread)
         plot_data["Ideal"][2].append(0)
 
-eb1 = plt.errorbar(
+
+fig, ax1 = plt.subplots()
+ax2 = ax1.twinx()
+
+ax1.set_zorder(ax2.get_zorder()+1) # put ax in front of ax2
+ax1.patch.set_visible(False) # hide the 'canvas'
+ax2.patch.set_visible(True) # show the 'canvas'
+
+ax2.bar(
+    [x - 0.3 for x in plot_data["Raw MPI"][0] if x != 1],
+    plot_data["Raw MPI"][3][1:],
+    0.6,
+    label = "Raw MPI",
+    fill = False,
+    color = "crimson",
+    hatch = "\\"
+)
+
+ax2.bar(
+    [x + 0.3 for x in plot_data["Our Abstraction"][0] if x != 1],
+    plot_data["Our Abstraction"][3][1:],
+    0.6,
+    label = "Our Abtraction",
+    fill = False,
+    color = "aqua",
+    hatch = "-"
+)
+
+ax1.errorbar(
     plot_data["Ideal"][0],
     plot_data["Ideal"][1],
     plot_data["Ideal"][2],
+    color="blue",
     label = "Ideal",
     fmt = '.',
-    elinewidth = 0.1,
+    elinewidth = 0.01,
     markersize = 5,
     linestyle = "dotted",
 )
 
-eb2 = plt.errorbar(
+ax1.errorbar(
     plot_data["Raw MPI"][0],
     plot_data["Raw MPI"][1],
     plot_data["Raw MPI"][2],
+    color="orange",
     label = "Raw MPI",
     fmt = 's',
     linestyle = "dashed",
     markersize = 2.5,
-    elinewidth = 0.1,
+    elinewidth = 0.01,
     capsize = 3,
 )
 
-eb3 = plt.errorbar(
+ax1.errorbar(
     plot_data["Our Abstraction"][0],
     plot_data["Our Abstraction"][1],
     plot_data["Our Abstraction"][2],
+    color="green",
     label = "Our Abtraction",
     fmt = '^',
     linestyle = "dashdot",
     markersize = 2.5,
-    elinewidth = 0.1,
+    elinewidth = 0.01,
     capsize = 3,
 )
 
-plt.xlabel("Workers")
-plt.ylabel("Speedup")
+ax1.set_xlabel("Workers")
+ax1.set_ylabel("Speedup")
+ax1.legend(loc=0, bbox_to_anchor=(0.335,1.22))
 
-plt.xticks(plot_data["Ideal"][0])
-plt.yticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45])
+ax2.set_ylabel("Efficiency")
+ax2.legend(loc=0, bbox_to_anchor=(1,1.1645))
 
-plt.legend()
+ax1.set_xticks(plot_data["Ideal"][0])
+ax1.set_yticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45])
+
 plt.savefig(graph_name + ".svg", bbox_inches='tight')
