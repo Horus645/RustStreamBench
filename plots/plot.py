@@ -33,32 +33,45 @@ graph_name = sys.argv[2]
 
 directory = os.fsencode(sys.argv[1])
 
+sequential_mean = 0
+sequential_stddev = 0
 graph_data = []
 for file in os.listdir(directory):
     filename = os.fsdecode(file)
-    runtime, threads = filename.split('-')
-    if runtime == "SPAR_RUST_MPI":
-        runtime = "Our Abstraction"
-    elif runtime == "MPI":
-        runtime = "Raw MPI"
-    
 
     values = read_floats(filename)
     m = mean(values)
     dev = stddev(values, m)
 
-    graph_data.append((runtime, int(threads), m, dev))
+    try:
+        runtime, threads = filename.split('-')
+        if runtime == "SPAR_RUST_MPI":
+            runtime = "Our Abstraction"
+        elif runtime == "MPI":
+            runtime = "Raw MPI"
+        graph_data.append((runtime, int(threads), m, dev))
+    except ValueError:
+        if filename == "SEQUENTIAL":
+            sequential_mean = m
+            sequential_stddev = dev
+    
 
 graph_data.sort()
 
 plot_data = {}
-plot_data["Our Abstraction"] = ([], [], [])
-plot_data["Raw MPI"] = ([], [], [])
+plot_data["Our Abstraction"] = ([1], [sequential_mean], [sequential_stddev])
+plot_data["Raw MPI"] = ([1], [sequential_mean], [sequential_stddev])
+plot_data["Ideal"] = ([1], [sequential_mean], [sequential_stddev])
 
 for (runtime, thread, mean, stddev) in graph_data:
     plot_data[runtime][0].append(thread)
     plot_data[runtime][1].append(mean)
     plot_data[runtime][2].append(stddev)
+
+    if plot_data["Ideal"][0][-1] < thread:
+        plot_data["Ideal"][0].append(thread)
+        plot_data["Ideal"][1].append(sequential_mean / thread)
+        plot_data["Ideal"][2].append(0)
 
 plt.errorbar(
     plot_data["Our Abstraction"][0],
@@ -72,6 +85,13 @@ plt.errorbar(
     plot_data["Raw MPI"][1],
     plot_data["Raw MPI"][2],
     label = "Raw MPI"
+)
+
+plt.errorbar(
+    plot_data["Ideal"][0],
+    plot_data["Ideal"][1],
+    plot_data["Ideal"][2],
+    label = "Ideal"
 )
 
 plt.legend()
