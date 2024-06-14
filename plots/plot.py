@@ -59,40 +59,60 @@ for file in os.listdir(directory):
 graph_data.sort()
 
 plot_data = {}
-plot_data["Our Abstraction"] = ([1], [sequential_mean], [sequential_stddev])
-plot_data["Raw MPI"] = ([1], [sequential_mean], [sequential_stddev])
-plot_data["Ideal"] = ([1], [sequential_mean], [sequential_stddev])
+plot_data["Our Abstraction"] = ([1], [1], [sequential_stddev])
+plot_data["Raw MPI"] = ([1], [1], [sequential_stddev])
+plot_data["Ideal"] = ([1], [1], [sequential_stddev])
 
 for (runtime, thread, mean, stddev) in graph_data:
     plot_data[runtime][0].append(thread)
-    plot_data[runtime][1].append(mean)
+    plot_data[runtime][1].append(sequential_mean / mean)
     plot_data[runtime][2].append(stddev)
 
     if plot_data["Ideal"][0][-1] < thread:
         plot_data["Ideal"][0].append(thread)
-        plot_data["Ideal"][1].append(sequential_mean / thread)
+        plot_data["Ideal"][1].append(thread)
         plot_data["Ideal"][2].append(0)
 
-plt.errorbar(
-    plot_data["Our Abstraction"][0],
-    plot_data["Our Abstraction"][1],
-    plot_data["Our Abstraction"][2],
-    label = "Our Abtraction"
-)
-
-plt.errorbar(
-    plot_data["Raw MPI"][0],
-    plot_data["Raw MPI"][1],
-    plot_data["Raw MPI"][2],
-    label = "Raw MPI"
-)
-
-plt.errorbar(
+eb1 = plt.errorbar(
     plot_data["Ideal"][0],
     plot_data["Ideal"][1],
     plot_data["Ideal"][2],
-    label = "Ideal"
+    label = "Ideal",
+    fmt = '.',
+    elinewidth = 0.1,
+    markersize = 5,
+    linestyle = "dotted",
 )
 
+eb2 = plt.errorbar(
+    plot_data["Raw MPI"][0],
+    plot_data["Raw MPI"][1],
+    plot_data["Raw MPI"][2],
+    label = "Raw MPI",
+    fmt = 's',
+    linestyle = "dashed",
+    markersize = 2.5,
+    elinewidth = 0.1,
+    capsize = 3,
+)
+
+eb3 = plt.errorbar(
+    plot_data["Our Abstraction"][0],
+    plot_data["Our Abstraction"][1],
+    plot_data["Our Abstraction"][2],
+    label = "Our Abtraction",
+    fmt = '^',
+    linestyle = "dashdot",
+    markersize = 2.5,
+    elinewidth = 0.1,
+    capsize = 3,
+)
+
+plt.xlabel("Workers")
+plt.ylabel("Speedup")
+
+plt.xticks(plot_data["Ideal"][0])
+plt.yticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45])
+
 plt.legend()
-plt.savefig(graph_name + ".svg")
+plt.savefig(graph_name + ".svg", bbox_inches='tight')
