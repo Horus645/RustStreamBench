@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{prelude::*, BufWriter};
+use std::io::prelude::*;
 use std::mem;
 use std::time::SystemTime;
 
@@ -10,8 +10,7 @@ pub fn sequential(file_action: &str, file_name: &str) {
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
-        let outfile = File::create(compressed_file_name).unwrap();
-        let mut buf_write = BufWriter::new(outfile);
+        let mut outfile = File::create(compressed_file_name).unwrap();
         let mut buffer_input = vec![];
         let mut buffer_output = vec![];
 
@@ -19,30 +18,18 @@ pub fn sequential(file_action: &str, file_name: &str) {
         file.read_to_end(&mut buffer_input).unwrap();
 
         // initialization
-        let mut pos_init: usize;
-        let mut pos_end = 0;
-        let mut bytes_left = buffer_input.len();
-
         let start = SystemTime::now();
-
-        while bytes_left > 0 {
-            pos_init = pos_end;
-            pos_end += if bytes_left < BLOCK_SIZE {
-                buffer_input.len() - pos_end
+        (0..buffer_input.len()).step_by(BLOCK_SIZE).for_each(|i| {
+            let buffer_slice = if i + BLOCK_SIZE >= buffer_input.len() {
+                &buffer_input[i..]
             } else {
-                BLOCK_SIZE
+                &buffer_input[i..i + BLOCK_SIZE]
             };
-            bytes_left -= pos_end - pos_init;
-
-            let buffer_slice = &buffer_input[pos_init..pos_end];
-
-            // computation
             unsafe {
                 let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
                 bzip2_sys::BZ2_bzCompressInit(&mut bz_buffer as *mut _, 9, 0, 30);
 
-                let mut output: Vec<u8> =
-                    vec![0; (buffer_slice.len() as f64 * 1.01) as usize + 600];
+                let mut output = vec![0u8; (buffer_slice.len() as f64 * 1.01) as usize + 600];
 
                 bz_buffer.next_in = buffer_slice.as_ptr() as *mut _;
                 bz_buffer.avail_in = buffer_slice.len() as _;
@@ -55,7 +42,7 @@ pub fn sequential(file_action: &str, file_name: &str) {
                 // write stage
                 buffer_output.extend(&output[0..bz_buffer.total_out_lo32 as usize]);
             }
-        }
+        });
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
@@ -63,13 +50,12 @@ pub fn sequential(file_action: &str, file_name: &str) {
         println!("Execution time: {in_sec} sec");
 
         // write compressed data to file
-        buf_write.write_all(&buffer_output).unwrap();
-        std::fs::remove_file(file_name).unwrap();
+        outfile.write_all(&buffer_output).unwrap();
+        //std::fs::remove_file(file_name).unwrap();
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
-        let outfile = File::create(decompressed_file_name).unwrap();
-        let mut buf_write = BufWriter::new(outfile);
+        let mut outfile = File::create(decompressed_file_name).unwrap();
         let mut buffer_input = vec![];
         let mut buffer_output = vec![];
 
@@ -141,8 +127,8 @@ pub fn sequential(file_action: &str, file_name: &str) {
         println!("Execution time: {in_sec} sec");
 
         // write decompressed data to file
-        buf_write.write_all(&buffer_output).unwrap();
-        std::fs::remove_file(file_name).unwrap();
+        outfile.write_all(&buffer_output).unwrap();
+        //std::fs::remove_file(file_name).unwrap();
     }
 }
 
@@ -151,39 +137,29 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
 
     if file_action == "compress" {
         let compressed_file_name = file_name.to_owned() + ".bz2";
-        let outfile = File::create(compressed_file_name).unwrap();
-        let mut buf_write = BufWriter::new(outfile);
+        let mut outfile = File::create(compressed_file_name).unwrap();
 
         // initialization
-        let mut pos_init: usize;
-        let mut pos_end = 0;
-        let mut bytes_left: usize = file.metadata().unwrap().len() as usize;
-
         let start = SystemTime::now();
 
-        while bytes_left > 0 {
-            pos_init = pos_end;
-            pos_end += if bytes_left < BLOCK_SIZE {
-                file.metadata().unwrap().len() as usize - pos_end
+        let file_size = file.metadata().unwrap().len() as usize;
+        let mut buffer = Vec::new();
+        (0..file_size).step_by(BLOCK_SIZE).for_each(|i| {
+            if i + BLOCK_SIZE >= file_size {
+                buffer.resize(file_size - i, 0);
             } else {
-                BLOCK_SIZE
-            };
-            bytes_left -= pos_end - pos_init;
+                buffer.resize(BLOCK_SIZE, 0);
+            }
+            file.read_exact(&mut buffer).unwrap();
 
-            //let buffer_slice = &buffer_input[pos_init..pos_end];
-            let mut buffer_slice: Vec<u8> = vec![0; pos_end - pos_init];
-            file.read_exact(&mut buffer_slice).unwrap();
-
-            // computation
             unsafe {
                 let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
                 bzip2_sys::BZ2_bzCompressInit(&mut bz_buffer as *mut _, 9, 0, 30);
 
-                let mut output: Vec<u8> =
-                    vec![0; (buffer_slice.len() as f64 * 1.01) as usize + 600];
+                let mut output: Vec<u8> = vec![0; (buffer.len() as f64 * 1.01) as usize + 600];
 
-                bz_buffer.next_in = buffer_slice.as_ptr() as *mut _;
-                bz_buffer.avail_in = buffer_slice.len() as _;
+                bz_buffer.next_in = buffer.as_ptr() as *mut _;
+                bz_buffer.avail_in = buffer.len() as _;
                 bz_buffer.next_out = output.as_mut_ptr() as *mut _;
                 bz_buffer.avail_out = output.len() as _;
 
@@ -191,11 +167,11 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
                 bzip2_sys::BZ2_bzCompressEnd(&mut bz_buffer as *mut _);
 
                 // write stage
-                buf_write
+                outfile
                     .write_all(&output[0..bz_buffer.total_out_lo32 as usize])
                     .unwrap();
             }
-        }
+        });
 
         let system_duration = start.elapsed().expect("Failed to get render time?");
         let in_sec =
@@ -203,12 +179,11 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
         println!("Execution time: {in_sec} sec");
 
         // write compressed data to file
-        std::fs::remove_file(file_name).unwrap();
+        //std::fs::remove_file(file_name).unwrap();
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
-        let outfile = File::create(decompressed_file_name).unwrap();
-        let mut buf_write = BufWriter::new(outfile);
+        let mut outfile = File::create(decompressed_file_name).unwrap();
         let mut buffer_input = vec![];
 
         // read data to memory
@@ -269,7 +244,7 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
                 bzip2_sys::BZ2_bzDecompressEnd(&mut bz_buffer as *mut _);
 
                 // write stage
-                buf_write
+                outfile
                     .write_all(&output[0..bz_buffer.total_out_lo32 as usize])
                     .unwrap();
             }
@@ -281,6 +256,6 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
         println!("Execution time: {in_sec} sec");
 
         // write decompressed data to file
-        std::fs::remove_file(file_name).unwrap();
+        //std::fs::remove_file(file_name).unwrap();
     }
 }
