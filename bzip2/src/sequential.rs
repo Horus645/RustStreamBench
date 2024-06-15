@@ -66,7 +66,7 @@ pub fn sequential(file_action: &str, file_name: &str) {
         let mut pos_init: usize;
         let mut pos_end = 0;
         let mut bytes_left = buffer_input.len();
-        let mut queue_blocks: Vec<(usize, usize)> = Vec::new();
+        let mut queue_blocks = Vec::new();
 
         while bytes_left > 0 {
             pos_init = pos_end;
@@ -106,7 +106,7 @@ pub fn sequential(file_action: &str, file_name: &str) {
                 let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
                 bzip2_sys::BZ2_bzDecompressInit(&mut bz_buffer as *mut _, 0, 0);
 
-                let mut output: Vec<u8> = vec![0; BLOCK_SIZE];
+                let mut output = vec![0; BLOCK_SIZE];
 
                 bz_buffer.next_in = buffer_slice.as_ptr() as *mut _;
                 bz_buffer.avail_in = buffer_slice.len() as _;
@@ -156,7 +156,7 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
                 let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
                 bzip2_sys::BZ2_bzCompressInit(&mut bz_buffer as *mut _, 9, 0, 30);
 
-                let mut output: Vec<u8> = vec![0; (buffer.len() as f64 * 1.01) as usize + 600];
+                let mut output = vec![0; (buffer.len() as f64 * 1.01) as usize + 600];
 
                 bz_buffer.next_in = buffer.as_ptr() as *mut _;
                 bz_buffer.avail_in = buffer.len() as _;
@@ -193,7 +193,7 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
         let mut pos_init: usize;
         let mut pos_end = 0;
         let mut bytes_left = buffer_input.len();
-        let mut queue_blocks: Vec<(usize, usize)> = Vec::new();
+        let mut queue_blocks = Vec::new();
 
         while bytes_left > 0 {
             pos_init = pos_end;
@@ -233,7 +233,7 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
                 let mut bz_buffer: bzip2_sys::bz_stream = mem::zeroed();
                 bzip2_sys::BZ2_bzDecompressInit(&mut bz_buffer as *mut _, 0, 0);
 
-                let mut output: Vec<u8> = vec![0; BLOCK_SIZE];
+                let mut output = vec![0; BLOCK_SIZE];
 
                 bz_buffer.next_in = buffer_slice.as_ptr() as *mut _;
                 bz_buffer.avail_in = buffer_slice.len() as _;
