@@ -51,7 +51,7 @@ pub fn sequential(file_action: &str, file_name: &str) {
 
         // write compressed data to file
         outfile.write_all(&buffer_output).unwrap();
-        //std::fs::remove_file(file_name).unwrap();
+        std::fs::remove_file(file_name).unwrap();
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
@@ -128,7 +128,7 @@ pub fn sequential(file_action: &str, file_name: &str) {
 
         // write decompressed data to file
         outfile.write_all(&buffer_output).unwrap();
-        //std::fs::remove_file(file_name).unwrap();
+        std::fs::remove_file(file_name).unwrap();
     }
 }
 
@@ -179,7 +179,7 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
         println!("Execution time: {in_sec} sec");
 
         // write compressed data to file
-        //std::fs::remove_file(file_name).unwrap();
+        std::fs::remove_file(file_name).unwrap();
     } else if file_action == "decompress" {
         // creating the decompressed file
         let decompressed_file_name = &file_name.to_owned()[..file_name.len() - 4];
@@ -256,6 +256,6 @@ pub fn sequential_io(file_action: &str, file_name: &str) {
         println!("Execution time: {in_sec} sec");
 
         // write decompressed data to file
-        //std::fs::remove_file(file_name).unwrap();
+        std::fs::remove_file(file_name).unwrap();
     }
 }
