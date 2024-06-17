@@ -98,9 +98,9 @@ ax1.patch.set_visible(False) # hide the 'canvas'
 ax2.patch.set_visible(True) # show the 'canvas'
 
 ax2.bar(
-    [x - 0.3 for x in plot_data["Raw MPI"][0] if x != 1],
+    [x - 0.5 for x in plot_data["Raw MPI"][0] if x != 1],
     plot_data["Raw MPI"][3][1:],
-    0.6,
+    1.0,
     label = "Raw MPI",
     fill = False,
     color = "crimson",
@@ -108,9 +108,9 @@ ax2.bar(
 )
 
 ax2.bar(
-    [x + 0.3 for x in plot_data["Our Abstraction"][0] if x != 1],
+    [x + 0.5 for x in plot_data["Our Abstraction"][0] if x != 1],
     plot_data["Our Abstraction"][3][1:],
-    0.6,
+    1.0,
     label = "Our Abtraction",
     fill = False,
     color = "aqua",
@@ -125,7 +125,7 @@ ax1.errorbar(
     label = "Ideal",
     fmt = '.',
     elinewidth = 0.01,
-    markersize = 5,
+    markersize = 8.0,
     linestyle = "dotted",
 )
 
@@ -137,7 +137,7 @@ ax1.errorbar(
     label = "Raw MPI",
     fmt = 's',
     linestyle = "dashed",
-    markersize = 2.5,
+    markersize = 5.0,
     elinewidth = 0.01,
     capsize = 3,
 )
@@ -150,22 +150,26 @@ ax1.errorbar(
     label = "Our Abtraction",
     fmt = '^',
     linestyle = "dashdot",
-    markersize = 2.5,
+    markersize = 5.0,
     elinewidth = 0.01,
     capsize = 3,
 )
 
-ax1.set_xlabel("Workers")
-ax1.set_ylabel("Speedup")
+ax1.set_xlabel("Workers", fontsize=20)
+ax1.set_ylabel("Speedup", fontsize=20)
 legend1 = ax1.legend(loc=0, bbox_to_anchor=(0.335,1.22))
 
-ax2.set_ylabel("Efficiency")
+ax2.set_ylabel("Efficiency", fontsize=20)
 legend2 = ax2.legend(loc=0, bbox_to_anchor=(1,1.1645))
 
 ax1.set_xticks(plot_data["Ideal"][0])
 ax1.set_yticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45])
+ax1.tick_params(axis='both', which='major', labelsize=16)
+ax1.tick_params(axis='both', which='minor', labelsize=14)
 
 ax2.set_yticks([10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
+ax2.tick_params(axis='both', which='major', labelsize=16)
+ax2.tick_params(axis='both', which='minor', labelsize=14)
 
 export_legend(legend1, "legend1.pdf")
 ax1.get_legend().remove()
