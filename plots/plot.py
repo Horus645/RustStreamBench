@@ -28,6 +28,21 @@ if len(sys.argv) < 2:
     print("usage: " + sys.argv[0] + " <directory in [data]> <graph name>")
     exit(-1)
 
+def export_legend(legend, filename="legend.pdf", expand=[-2,-2,2,2]):
+    fig  = legend.figure
+    fig.canvas.draw()
+    bbox  = legend.get_window_extent()
+    bbox = bbox.from_extents([
+        bbox.extents[0] + expand[0],
+        bbox.extents[1] + expand[1],
+        bbox.extents[2] + expand[2],
+        bbox.extents[3] + expand[3]]
+    )
+    bbox = bbox.transformed(fig.dpi_scale_trans.inverted())
+    #bbox = bbox.from_extents(*(bbox.extents + np.array(expand)))
+    #bbox = bbox.transformed(fig.dpi_scale_trans.inverted())
+    fig.savefig(filename, dpi=300, bbox_inches=bbox)
+
 
 graph_name = sys.argv[2]
 
@@ -89,7 +104,7 @@ ax2.bar(
     label = "Raw MPI",
     fill = False,
     color = "crimson",
-    hatch = "\\"
+    hatch = "//"
 )
 
 ax2.bar(
@@ -99,7 +114,7 @@ ax2.bar(
     label = "Our Abtraction",
     fill = False,
     color = "aqua",
-    hatch = "-"
+    hatch = ".."
 )
 
 ax1.errorbar(
@@ -142,14 +157,19 @@ ax1.errorbar(
 
 ax1.set_xlabel("Workers")
 ax1.set_ylabel("Speedup")
-ax1.legend(loc=0, bbox_to_anchor=(0.335,1.22))
+legend1 = ax1.legend(loc=0, bbox_to_anchor=(0.335,1.22))
 
 ax2.set_ylabel("Efficiency")
-ax2.legend(loc=0, bbox_to_anchor=(1,1.1645))
+legend2 = ax2.legend(loc=0, bbox_to_anchor=(1,1.1645))
 
 ax1.set_xticks(plot_data["Ideal"][0])
 ax1.set_yticks([1, 5, 10, 15, 20, 25, 30, 35, 40, 45])
 
 ax2.set_yticks([10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
 
-plt.savefig(graph_name + ".svg", bbox_inches='tight')
+export_legend(legend1, "legend1.pdf")
+ax1.get_legend().remove()
+export_legend(legend2, "legend2.pdf")
+ax2.get_legend().remove()
+
+plt.savefig(graph_name + ".pdf", bbox_inches='tight')
